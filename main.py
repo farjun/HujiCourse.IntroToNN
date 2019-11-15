@@ -3,7 +3,6 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Conv2D, Flatten, Dense, MaxPooling2D
-import numpy as np
 
 class CNNModel(Model):
     def __init__(self):
