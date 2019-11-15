@@ -41,43 +41,12 @@ def get_data(db, normalize=True):
     return (x_train, y_train), (x_test, y_test)
 
 
-if __name__ == '__main__':
+def main():
     model = CNNModel()
-    (x_train, y_train), (x_test, y_test) = get_data('mnist')
-    x_train = x_train[..., tf.newaxis]
-    x_test = x_test[..., tf.newaxis]
-    train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(32)
-    test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
-
-    train_loss = tf.keras.metrics.Mean(name='train_loss')
-    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
-
-    test_loss = tf.keras.metrics.Mean(name='test_loss')
-    test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+    test_ds, train_ds = create_data_sets()
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-
-    optimizer = tf.keras.optimizers.Adam()
-
-
-    @tf.function
-    def train_step(images, labels):
-        with tf.GradientTape() as tape:
-            predictions = model(images)
-            loss = loss_object(labels, predictions)
-        gradients = tape.gradient(loss, model.trainable_variables)
-        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-        train_loss(loss)
-        train_accuracy(labels, predictions)
-
-
-    @tf.function
-    def test_step(images, labels):
-        predictions = model(images)
-        t_loss = loss_object(labels, predictions)
-
-        test_loss(t_loss)
-        test_accuracy(labels, predictions)
-
+    train_step, train_loss, train_accuracy  = get_train_step(model, loss_object)
+    test_step, test_loss, test_accuracy = get_test_step(model, loss_object)
 
     EPOCHS = 5
 
@@ -97,7 +66,7 @@ if __name__ == '__main__':
             if train_counter % report_every == 0:
                 with train_summary_writer.as_default():
                     tf.summary.scalar("loss", train_loss.result(), step=train_counter)
-                    tf.summary.scalar("accuracy", train_accuracy.result()*100, step=train_counter)
+                    tf.summary.scalar("accuracy", train_accuracy.result() * 100, step=train_counter)
             train_counter += 1
 
         for test_images, test_labels in test_ds:
@@ -105,7 +74,7 @@ if __name__ == '__main__':
             if test_counter % report_every == 0:
                 with test_summary_writer.as_default():
                     tf.summary.scalar("loss", test_loss.result(), step=test_counter)
-                    tf.summary.scalar("accuracy", test_accuracy.result()*100, step=test_counter)
+                    tf.summary.scalar("accuracy", test_accuracy.result() * 100, step=test_counter)
             test_counter += 1
 
         template = 'Epoch {}, Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}'
@@ -123,3 +92,48 @@ if __name__ == '__main__':
 
     train_summary_writer.close()
     test_summary_writer.close()
+
+
+def get_train_step(model, loss_object):
+    optimizer = tf.keras.optimizers.Adam()
+    train_loss = tf.keras.metrics.Mean(name='train_loss')
+    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
+
+    @tf.function
+    def train_step(images, labels):
+        with tf.GradientTape() as tape:
+            predictions = model(images)
+            loss = loss_object(labels, predictions)
+        gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+        train_loss(loss)
+        train_accuracy(labels, predictions)
+
+    return train_step, train_loss, train_accuracy
+
+
+def get_test_step(model, loss_object):
+    test_loss = tf.keras.metrics.Mean(name='test_loss')
+    test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
+
+    @tf.function
+    def test_step(images, labels):
+        predictions = model(images)
+        t_loss = loss_object(labels, predictions)
+        test_loss(t_loss)
+        test_accuracy(labels, predictions)
+
+    return test_step, test_loss, test_accuracy
+
+
+def create_data_sets():
+    (x_train, y_train), (x_test, y_test) = get_data('mnist')
+    x_train = x_train[..., tf.newaxis]
+    x_test = x_test[..., tf.newaxis]
+    train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(32)
+    test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
+    return test_ds, train_ds
+
+
+if __name__ == '__main__':
+    main()
