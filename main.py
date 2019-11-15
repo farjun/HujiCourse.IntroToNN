@@ -1,8 +1,11 @@
-
 from __future__ import absolute_import, division, print_function, unicode_literals
+
+from datetime import datetime
+
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Conv2D, Flatten, Dense, MaxPooling2D
+
 
 class CNNModel(Model):
     def __init__(self):
@@ -15,7 +18,7 @@ class CNNModel(Model):
         self.d1 = Dense(1024, activation='relu')
         self.d2 = Dense(10, activation='softmax')
 
-    def call(self, x, mask=None):
+    def call(self, x, **kwargs):
         x = self.conv1(x)
         x = self.max_pool_1(x)
         x = self.conv2(x)
@@ -26,8 +29,7 @@ class CNNModel(Model):
         return x
 
 
-def get_data(db, normalize = True):
-
+def get_data(db, normalize=True):
     if db == 'mnist':
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     else:
@@ -36,8 +38,7 @@ def get_data(db, normalize = True):
     if normalize:
         x_train, x_test = x_train / 255.0, x_test / 255.0
 
-    return  (x_train, y_train), (x_test, y_test)
-
+    return (x_train, y_train), (x_test, y_test)
 
 
 if __name__ == '__main__':
@@ -57,6 +58,7 @@ if __name__ == '__main__':
 
     optimizer = tf.keras.optimizers.Adam()
 
+
     @tf.function
     def train_step(images, labels):
         with tf.GradientTape() as tape:
@@ -64,7 +66,6 @@ if __name__ == '__main__':
             loss = loss_object(labels, predictions)
         gradients = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-
         train_loss(loss)
         train_accuracy(labels, predictions)
 
@@ -77,14 +78,36 @@ if __name__ == '__main__':
         test_loss(t_loss)
         test_accuracy(labels, predictions)
 
+
     EPOCHS = 5
+
+    # tensor board
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
+    test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
+    train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+    test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+
+    report_every = 1
+    train_counter = 0
+    test_counter = 0
 
     for epoch in range(EPOCHS):
         for images, labels in train_ds:
             train_step(images, labels)
+            if train_counter % report_every == 0:
+                with train_summary_writer.as_default():
+                    tf.summary.scalar("loss", train_loss.result(), step=train_counter)
+                    tf.summary.scalar("accuracy", train_accuracy.result(), step=train_counter)
+            train_counter += 1
 
         for test_images, test_labels in test_ds:
             test_step(test_images, test_labels)
+            if test_counter % report_every == 0:
+                with test_summary_writer.as_default():
+                    tf.summary.scalar("loss", test_loss.result(), step=test_counter)
+                    tf.summary.scalar("accuracy", test_accuracy.result(), step=test_counter)
+            test_counter += 1
 
         template = 'Epoch {}, Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}'
         print(template.format(epoch + 1,
@@ -98,3 +121,6 @@ if __name__ == '__main__':
         train_accuracy.reset_states()
         test_loss.reset_states()
         test_accuracy.reset_states()
+
+    train_summary_writer.close()
+    test_summary_writer.close()
