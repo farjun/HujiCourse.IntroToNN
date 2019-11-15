@@ -91,14 +91,13 @@ if __name__ == '__main__':
     report_every = 1
     train_counter = 0
     test_counter = 0
-
     for epoch in range(EPOCHS):
         for images, labels in train_ds:
             train_step(images, labels)
             if train_counter % report_every == 0:
                 with train_summary_writer.as_default():
                     tf.summary.scalar("loss", train_loss.result(), step=train_counter)
-                    tf.summary.scalar("accuracy", train_accuracy.result(), step=train_counter)
+                    tf.summary.scalar("accuracy", train_accuracy.result()*100, step=train_counter)
             train_counter += 1
 
         for test_images, test_labels in test_ds:
@@ -106,7 +105,7 @@ if __name__ == '__main__':
             if test_counter % report_every == 0:
                 with test_summary_writer.as_default():
                     tf.summary.scalar("loss", test_loss.result(), step=test_counter)
-                    tf.summary.scalar("accuracy", test_accuracy.result(), step=test_counter)
+                    tf.summary.scalar("accuracy", test_accuracy.result()*100, step=test_counter)
             test_counter += 1
 
         template = 'Epoch {}, Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}'
