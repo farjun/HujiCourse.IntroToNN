@@ -37,7 +37,7 @@ class LinearModel(Model):
         self.max_pool_1 = MaxPooling2D((2, 2))
         self.max_pool_2 = MaxPooling2D((2, 2))
         self.flatten = Flatten()
-        self.d1 = Dense(1024, activation='relu')
+        self.d1 = Dense(1024)
         self.d2 = Dense(10, activation='softmax')
 
     def call(self, x, **kwargs):
@@ -96,9 +96,9 @@ def get_data(db, normalize=True):
 
 def main():
     # model = CNNModel()
-    # model = LinearModel()
+    model = LinearModel()
     # model = SmallCNN()
-    model = ReducedCNNModel()
+    # model = ReducedCNNModel()
     test_ds, train_ds = create_data_sets()
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
     train_step, train_loss, train_accuracy = get_train_step(model, loss_object)
