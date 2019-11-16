@@ -1,4 +1,4 @@
-1.
+1.1
 (5*5+1)*32
 (5*5+1)*64
 (7*7*64+1)*1024
@@ -6,5 +6,15 @@
 
 and do sum on it
 
-2.
+1.2
 1_2_accuracy
+
+2
+2_2_and_3accuracy
+2.2
+linear faster , non linear better!
+
+2.3
+big gap (maybe over fitting)
+
+

@@ -9,9 +9,6 @@ from tensorflow.keras.layers import Conv2D, Flatten, Dense, MaxPooling2D
 
 class CNNModel(Model):
 
-    @staticmethod
-    def get_model_name():
-        return "CNNModel"
 
     def __init__(self):
         super(CNNModel, self).__init__()
@@ -35,9 +32,7 @@ class CNNModel(Model):
 
 
 class LinearModel(Model):
-    @staticmethod
-    def get_model_name():
-        return "LinearModel"
+
 
     def __init__(self):
         super(LinearModel, self).__init__()
@@ -49,6 +44,29 @@ class LinearModel(Model):
 
     def call(self, x, **kwargs):
         x = self.max_pool_1(x)
+        x = self.max_pool_2(x)
+        x = self.flatten(x)
+        x = self.d1(x)
+        x = self.d2(x)
+        return x
+
+class SmallCNN(Model):
+
+    def __init__(self):
+        super(SmallCNN, self).__init__()
+        self.conv1 = Conv2D(32, (5, 5), activation='relu')
+        self.max_pool_1 = MaxPooling2D((2, 2))
+        self.conv2 = Conv2D(64, (5, 5), activation='relu')
+        self.max_pool_2 = MaxPooling2D((2, 2))
+        self.flatten = Flatten()
+        self.d1 = Dense(1024, activation='relu')
+        self.d2 = Dense(10, activation='softmax')
+
+
+    def call(self, x, **kwargs):
+        x = self.conv1(x)
+        x = self.max_pool_1(x)
+        x = self.conv2(x)
         x = self.max_pool_2(x)
         x = self.flatten(x)
         x = self.d1(x)
@@ -71,7 +89,6 @@ def get_data(db, normalize=True):
 def main():
     # model = CNNModel()
     model = LinearModel()
-    name = model.get_model_name()
     test_ds, train_ds = create_data_sets()
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
     train_step, train_loss, train_accuracy = get_train_step(model, loss_object)
@@ -79,8 +96,8 @@ def main():
 
     # tensor board
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    train_log_dir = f'logs/{model.get_model_name()}/' + current_time + '/train'
-    test_log_dir = f'logs/{model.get_model_name()}/' + current_time + '/test'
+    train_log_dir = f'logs/{model.name}/' + current_time + '/train'
+    test_log_dir = f'logs/{model.name}/' + current_time + '/test'
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
