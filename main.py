@@ -8,6 +8,11 @@ from tensorflow.keras.layers import Conv2D, Flatten, Dense, MaxPooling2D
 
 
 class CNNModel(Model):
+
+    @staticmethod
+    def get_model_name():
+        return "CNNModel"
+
     def __init__(self):
         super(CNNModel, self).__init__()
         self.conv1 = Conv2D(32, (5, 5), activation='relu')
@@ -29,6 +34,28 @@ class CNNModel(Model):
         return x
 
 
+class LinearModel(Model):
+    @staticmethod
+    def get_model_name():
+        return "LinearModel"
+
+    def __init__(self):
+        super(LinearModel, self).__init__()
+        self.max_pool_1 = MaxPooling2D((2, 2))
+        self.max_pool_2 = MaxPooling2D((2, 2))
+        self.flatten = Flatten()
+        self.d1 = Dense(1024, activation='relu')
+        self.d2 = Dense(10, activation='softmax')
+
+    def call(self, x, **kwargs):
+        x = self.max_pool_1(x)
+        x = self.max_pool_2(x)
+        x = self.flatten(x)
+        x = self.d1(x)
+        x = self.d2(x)
+        return x
+
+
 def get_data(db, normalize=True):
     if db == 'mnist':
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -42,56 +69,55 @@ def get_data(db, normalize=True):
 
 
 def main():
-    model = CNNModel()
+    # model = CNNModel()
+    model = LinearModel()
+    name = model.get_model_name()
     test_ds, train_ds = create_data_sets()
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-    train_step, train_loss, train_accuracy  = get_train_step(model, loss_object)
+    train_step, train_loss, train_accuracy = get_train_step(model, loss_object)
     test_step, test_loss, test_accuracy = get_test_step(model, loss_object)
-
-    EPOCHS = 5
 
     # tensor board
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    train_log_dir = 'logs/gradient_tape/' + current_time + '/train'
-    test_log_dir = 'logs/gradient_tape/' + current_time + '/test'
+    train_log_dir = f'logs/{model.get_model_name()}/' + current_time + '/train'
+    test_log_dir = f'logs/{model.get_model_name()}/' + current_time + '/test'
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
-    report_every = 1
+    total_number_of_iteration = 20000
+    report_every = 500
     train_counter = 0
-    test_counter = 0
-    for epoch in range(EPOCHS):
+
+    for epoch in range(report_every, total_number_of_iteration+report_every, report_every): # TODO it's not epoch!
         for images, labels in train_ds:
             train_step(images, labels)
-            if train_counter % report_every == 0:
-                with train_summary_writer.as_default():
-                    tf.summary.scalar("loss", train_loss.result(), step=train_counter)
-                    tf.summary.scalar("accuracy", train_accuracy.result() * 100, step=train_counter)
             train_counter += 1
+            if train_counter % report_every == 0:
+                break
+        with train_summary_writer.as_default():
+            tf.summary.scalar("loss", train_loss.result(), step=train_counter)
+            tf.summary.scalar("accuracy", train_accuracy.result() * 100, step=train_counter)
 
         for test_images, test_labels in test_ds:
             test_step(test_images, test_labels)
-            if test_counter % report_every == 0:
-                with test_summary_writer.as_default():
-                    tf.summary.scalar("loss", test_loss.result(), step=test_counter)
-                    tf.summary.scalar("accuracy", test_accuracy.result() * 100, step=test_counter)
-            test_counter += 1
 
+        with test_summary_writer.as_default():
+            tf.summary.scalar("loss", test_loss.result(), step=train_counter)
+            tf.summary.scalar("accuracy", test_accuracy.result() * 100, step=train_counter)
         template = 'Epoch {}, Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}'
-        print(template.format(epoch + 1,
+        print(template.format(epoch,
                               train_loss.result(),
                               train_accuracy.result() * 100,
                               test_loss.result(),
                               test_accuracy.result() * 100))
-
         # Reset the metrics for the next epoch
         train_loss.reset_states()
         train_accuracy.reset_states()
         test_loss.reset_states()
         test_accuracy.reset_states()
 
-    train_summary_writer.close()
-    test_summary_writer.close()
+    # train_summary_writer.close()
+    # test_summary_writer.close()
 
 
 def get_train_step(model, loss_object):
