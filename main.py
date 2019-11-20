@@ -4,6 +4,7 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 
+
 def get_data(db, normalize=True):
     if db == 'mnist':
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -15,10 +16,12 @@ def get_data(db, normalize=True):
 
     return (x_train, y_train), (x_test, y_test)
 
-def create_data_sets(maxTrainSize :int = 0):
+
+def create_data_sets(maxTrainSize: int = 0):
     (x_train, y_train), (x_test, y_test) = get_data('mnist')
     if maxTrainSize:
         chosenIndexes = np.random.choice(x_train.shape[0], maxTrainSize)
+        # TODO the if below redundant since you enter iff differ from 0.
         x_train = x_train if maxTrainSize == 0 else x_train[chosenIndexes]
         y_train = y_train if maxTrainSize == 0 else y_train[chosenIndexes]
 
@@ -29,7 +32,7 @@ def create_data_sets(maxTrainSize :int = 0):
     return test_ds, train_ds
 
 
-def get_train_step(model, loss_object):
+def get_train_step(model: tf.keras.Model, loss_object):
     optimizer = tf.keras.optimizers.Adam()
     train_loss = tf.keras.metrics.Mean(name='train_loss')
     train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
@@ -37,7 +40,8 @@ def get_train_step(model, loss_object):
     @tf.function
     def train_step(images, labels):
         with tf.GradientTape() as tape:
-            predictions = model(images, **dict(runType = 'train'))
+            # TODO change to standard usage with training=True
+            predictions = model(images, training=True)
             loss = loss_object(labels, predictions)
         gradients = tape.gradient(loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -53,15 +57,17 @@ def get_test_step(model, loss_object):
 
     @tf.function
     def test_step(images, labels):
-        predictions = model(images,**dict(runType = 'test'))
+        predictions = model(images, training=False)
         t_loss = loss_object(labels, predictions)
         test_loss(t_loss)
         test_accuracy(labels, predictions)
 
     return test_step, test_loss, test_accuracy
 
+
 def getSummaryWriters(modelName):
     # tensor board
+    # TODO not sure why to use different directories.
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     train_log_dir = f'logs/{modelName}/' + current_time + '/train'
     print("run: tensorboard --logdir ./" + train_log_dir + " --port 6006")
@@ -72,13 +78,15 @@ def getSummaryWriters(modelName):
     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
     return train_summary_writer, test_summary_writer
 
-def trainAndTest(model, train_ds, test_ds, graphs_suffix = "", summary_writers = None):
 
+def trainAndTest(model, train_ds, test_ds, graphs_suffix="", summary_writers=None):
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
     train_step, train_loss, train_accuracy = get_train_step(model, loss_object)
     test_step, test_loss, test_accuracy = get_test_step(model, loss_object)
 
-    train_summary_writer, test_summary_writer = getSummaryWriters(model.name) if summary_writers is None else summary_writers
+    # TODO missing close for the writer, while passing summary_writers as optional is problmatic, just make it mandatory.
+    train_summary_writer, test_summary_writer = getSummaryWriters(
+        model.name) if summary_writers is None else summary_writers
 
     total_number_of_iteration = 20000
     report_every = 500
@@ -116,23 +124,25 @@ def trainAndTest(model, train_ds, test_ds, graphs_suffix = "", summary_writers =
     # train_summary_writer.close()
     # test_summary_writer.close()
 
+
 def runQ4():
     model = exModels.ReducedOverfittingCNNModel()
     summary_writers = getSummaryWriters(model.name)
     test_ds, train_ds = create_data_sets()
-    trainAndTest(model,train_ds, test_ds, graphs_suffix = "no dropout full data:", summary_writers = summary_writers)
+    trainAndTest(model, train_ds, test_ds, graphs_suffix="no dropout full data:", summary_writers=summary_writers)
 
     model = exModels.ReducedOverfittingCNNModel()
     test_ds, train_ds = create_data_sets(maxTrainSize=250)
-    trainAndTest(model,train_ds, test_ds, graphs_suffix = "no dropout partial data:", summary_writers = summary_writers)
+    trainAndTest(model, train_ds, test_ds, graphs_suffix="no dropout partial data:", summary_writers=summary_writers)
 
     model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
     test_ds, train_ds = create_data_sets()
-    trainAndTest(model,train_ds, test_ds, graphs_suffix = "with dropout full data:", summary_writers = summary_writers)
+    trainAndTest(model, train_ds, test_ds, graphs_suffix="with dropout full data:", summary_writers=summary_writers)
 
     model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
     test_ds, train_ds = create_data_sets(maxTrainSize=250)
-    trainAndTest(model,train_ds, test_ds, graphs_suffix = "with dropout partial data:", summary_writers = summary_writers)
+    trainAndTest(model, train_ds, test_ds, graphs_suffix="with dropout partial data:", summary_writers=summary_writers)
+    # TODO missing close for the writes.
 
 
 def main():

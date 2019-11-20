@@ -87,12 +87,12 @@ class ReducedOverfittingCNNModel(Model):
         self.d2 = Dense(10, activation='softmax')
         self.dropout = Dropout(dropoutRate)
 
-    def call(self, x, **kwargs):
+    def call(self, x, training=None, mask=None):
         x = self.conv1(x)
         x = self.max_pool_1(x)
         x = self.max_pool_2(x)
         x = self.flatten(x)
         x = self.d2(x)
-        x = self.dropout(x) if kwargs.get('run_type') == 'train' else x
+        x = self.dropout(x) if training else x
         return x
 
