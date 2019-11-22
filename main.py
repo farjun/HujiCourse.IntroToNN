@@ -79,14 +79,12 @@ def getSummaryWriters(modelName):
     return train_summary_writer, test_summary_writer
 
 
-def trainAndTest(model, train_ds, test_ds, graphs_suffix="", summary_writers=None):
+def trainAndTest(model, train_ds, test_ds):
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
     train_step, train_loss, train_accuracy = get_train_step(model, loss_object)
     test_step, test_loss, test_accuracy = get_test_step(model, loss_object)
 
-    # TODO missing close for the writer, while passing summary_writers as optional is problmatic, just make it mandatory.
-    train_summary_writer, test_summary_writer = getSummaryWriters(
-        model.name) if summary_writers is None else summary_writers
+    train_summary_writer, test_summary_writer = getSummaryWriters(model.name)
 
     total_number_of_iteration = 20000
     report_every = 500
@@ -100,15 +98,15 @@ def trainAndTest(model, train_ds, test_ds, graphs_suffix="", summary_writers=Non
                 break
 
         with train_summary_writer.as_default():
-            tf.summary.scalar(graphs_suffix + "loss", train_loss.result(), step=train_counter)
-            tf.summary.scalar(graphs_suffix + "accuracy", train_accuracy.result() * 100, step=train_counter)
+            tf.summary.scalar("loss", train_loss.result(), step=train_counter)
+            tf.summary.scalar("accuracy", train_accuracy.result() * 100, step=train_counter)
 
         for test_images, test_labels in test_ds:
             test_step(test_images, test_labels)
 
         with test_summary_writer.as_default():
-            tf.summary.scalar(graphs_suffix + "loss", test_loss.result(), step=train_counter)
-            tf.summary.scalar(graphs_suffix + "accuracy", test_accuracy.result() * 100, step=train_counter)
+            tf.summary.scalar("loss", test_loss.result(), step=train_counter)
+            tf.summary.scalar("accuracy", test_accuracy.result() * 100, step=train_counter)
         template = 'Epoch {}, Loss: {}, Accuracy: {}, Test Loss: {}, Test Accuracy: {}'
         print(template.format(epoch,
                               train_loss.result(),
@@ -127,22 +125,20 @@ def trainAndTest(model, train_ds, test_ds, graphs_suffix="", summary_writers=Non
 
 def runQ4():
     model = exModels.ReducedOverfittingCNNModel()
-    summary_writers = getSummaryWriters(model.name)
     test_ds, train_ds = create_data_sets()
-    trainAndTest(model, train_ds, test_ds, graphs_suffix="no dropout full data:", summary_writers=summary_writers)
+    trainAndTest(model, train_ds, test_ds)
 
     model = exModels.ReducedOverfittingCNNModel()
     test_ds, train_ds = create_data_sets(maxTrainSize=250)
-    trainAndTest(model, train_ds, test_ds, graphs_suffix="no dropout partial data:", summary_writers=summary_writers)
+    trainAndTest(model, train_ds, test_ds)
 
     model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
     test_ds, train_ds = create_data_sets()
-    trainAndTest(model, train_ds, test_ds, graphs_suffix="with dropout full data:", summary_writers=summary_writers)
+    trainAndTest(model, train_ds, test_ds)
 
     model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
     test_ds, train_ds = create_data_sets(maxTrainSize=250)
-    trainAndTest(model, train_ds, test_ds, graphs_suffix="with dropout partial data:", summary_writers=summary_writers)
-    # TODO missing close for the writes.
+    trainAndTest(model, train_ds, test_ds)
 
 
 def main():
