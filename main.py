@@ -4,10 +4,37 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 
+def concatinate_dataset(x_dataset,y_dataset):
+    chosenIndexes = np.random.choice(x_dataset.shape[0], x_dataset.shape[0])
+    x_train_shuffeled = x_dataset[chosenIndexes]
+    y_train_shuffleed = y_dataset[chosenIndexes]
+    x_ds = np.concatenate((x_dataset, x_train_shuffeled), axis=1)
+    y_ds = y_dataset + y_train_shuffleed
+    return x_ds, y_ds
+
+def sqweez_dataset(x_dataset,y_dataset):
+    chosenIndexes = np.random.choice(x_dataset.shape[0], x_dataset.shape[0])
+    x_train_shuffeled = x_dataset[chosenIndexes]
+    y_train_shuffleed = y_dataset[chosenIndexes]
+
+    x_ds = np.stack((x_dataset, x_train_shuffeled),axis= -1)
+    y_ds = y_dataset + y_train_shuffleed
+
+    return x_ds, y_ds
 
 def get_data(db, normalize=True):
     if db == 'mnist':
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+
+    elif db == 'mnistdouble':
+        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+        x_train, y_train = concatinate_dataset(x_train,y_train)
+        x_test, y_test = concatinate_dataset(x_test, y_test)
+
+    elif db == 'mnistsqueezd':
+        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+        x_train, y_train = sqweez_dataset(x_train,y_train)
+        x_test, y_test = sqweez_dataset(x_test, y_test)
     else:
         return None
 
@@ -17,13 +44,13 @@ def get_data(db, normalize=True):
     return (x_train, y_train), (x_test, y_test)
 
 
-def create_data_sets(maxTrainSize: int = 0):
-    (x_train, y_train), (x_test, y_test) = get_data('mnist')
+def create_data_sets(db: str = "mnist", maxTrainSize: int = 0):
+    (x_train, y_train), (x_test, y_test) = get_data(db)
+
     if maxTrainSize:
         chosenIndexes = np.random.choice(x_train.shape[0], maxTrainSize)
-        # TODO the if below redundant since you enter iff differ from 0.
-        x_train = x_train if maxTrainSize == 0 else x_train[chosenIndexes]
-        y_train = y_train if maxTrainSize == 0 else y_train[chosenIndexes]
+        x_train = x_train[chosenIndexes]
+        y_train = y_train[chosenIndexes]
 
     x_train = x_train[..., tf.newaxis]
     x_test = x_test[..., tf.newaxis]
@@ -119,8 +146,8 @@ def trainAndTest(model, train_ds, test_ds):
         test_loss.reset_states()
         test_accuracy.reset_states()
 
-    # train_summary_writer.close()
-    # test_summary_writer.close()
+    train_summary_writer.close()
+    test_summary_writer.close()
 
 
 def runQ4():
@@ -140,9 +167,19 @@ def runQ4():
     test_ds, train_ds = create_data_sets(maxTrainSize=250)
     trainAndTest(model, train_ds, test_ds)
 
+def runQ5():
+    # model = exModels.SumCalculatorModel()
+    # test_ds, train_ds = create_data_sets(db = "mnistdouble")
+    # trainAndTest(model, train_ds, test_ds)
+
+    model = exModels.SumCalculatorStackedModel()
+    test_ds, train_ds = create_data_sets(db = "mnistsqueezd")
+    trainAndTest(model, train_ds, test_ds)
+
 
 def main():
     runQ4()
+    # runQ5()
     # model = exModels.CNNModel()
     # model = exModels.LinearModel()
     # model = exModels.SmallCNN()
