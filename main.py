@@ -67,7 +67,6 @@ def get_train_step(model: tf.keras.Model, loss_object):
     @tf.function
     def train_step(images, labels):
         with tf.GradientTape() as tape:
-            # TODO change to standard usage with training=True
             predictions = model(images, training=True)
             loss = loss_object(labels, predictions)
         gradients = tape.gradient(loss, model.trainable_variables)
@@ -150,6 +149,31 @@ def trainAndTest(model, train_ds, test_ds):
     test_summary_writer.close()
 
 
+def runQ1():
+    model = exModels.CNNModel()
+    exModels.printable_model(model).summary()
+    test_ds, train_ds = create_data_sets()
+    trainAndTest(model, train_ds, test_ds)
+
+def runQ2():
+    model = exModels.LinearModel()
+    exModels.printable_model(model).summary()
+    test_ds, train_ds = create_data_sets()
+    trainAndTest(model, train_ds, test_ds)
+
+
+def runQ3():
+    test_ds, train_ds = create_data_sets()
+    model = exModels.SmallCNN()
+    exModels.printable_model(model).summary()
+    model.build((1, 28, 28, 1))
+    # trainAndTest(model, train_ds, test_ds)
+
+    model = exModels.ReducedCNNModel()
+    exModels.printable_model(model).summary()
+    model.build((1, 28, 28, 1))
+    # trainAndTest(model, train_ds, test_ds)
+
 def runQ4():
     model = exModels.ReducedOverfittingCNNModel()
     test_ds, train_ds = create_data_sets()
@@ -178,14 +202,11 @@ def runQ5():
 
 
 def main():
-    runQ4()
+    # runQ1()
+    # runQ2()
+    runQ3()
+    # runQ4()
     # runQ5()
-    # model = exModels.CNNModel()
-    # model = exModels.LinearModel()
-    # model = exModels.SmallCNN()
-    # model = exModels.ReducedCNNModel()
-    # test_ds, train_ds = create_data_sets()
-    # trainAndTest(model,train_ds, test_ds)
 
 
 if __name__ == '__main__':
