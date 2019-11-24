@@ -176,13 +176,13 @@ def runQ3():
     # trainAndTest(model, train_ds, test_ds)
 
 def runQ4():
-    model = exModels.ReducedOverfittingCNNModel()
-    test_ds, train_ds = create_data_sets(maxTrainSize=250)
-    trainAndTest(model, train_ds, test_ds)
-
     # model = exModels.ReducedOverfittingCNNModel()
     # test_ds, train_ds = create_data_sets(maxTrainSize=250)
     # trainAndTest(model, train_ds, test_ds)
+
+    model = exModels.DropoutOverfittingCNNModel(dropoutRate=0.3)
+    test_ds, train_ds = create_data_sets(maxTrainSize=250)
+    trainAndTest(model, train_ds, test_ds)
     #
     # model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
     # test_ds, train_ds = create_data_sets()

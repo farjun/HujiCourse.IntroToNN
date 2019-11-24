@@ -90,7 +90,7 @@ class ReducedCNNModel(Model):
 
 class ReducedOverfittingCNNModel(Model):
 
-    def __init__(self, dropoutRate=0):
+    def __init__(self):
         super(ReducedOverfittingCNNModel, self).__init__()
         self.conv1 = Conv2D(8, (3, 3), activation='relu')
         self.max_pool_1 = MaxPooling2D((2, 2))
