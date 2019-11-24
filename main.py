@@ -18,8 +18,8 @@ def sqweez_dataset(x_dataset,y_dataset):
     x_train_shuffeled = x_dataset[chosenIndexes]
     y_train_shuffleed = y_dataset[chosenIndexes]
 
-    x_ds = np.stack((x_dataset, x_train_shuffeled),axis= -1)
-    y_ds = y_dataset + y_train_shuffleed
+    x_ds = np.stack((x_dataset, x_train_shuffeled),axis= 1)
+    y_ds = np.stack((y_dataset, y_train_shuffleed), axis = 1)
 
     return x_ds, y_ds
 
@@ -206,8 +206,8 @@ def main():
     # runQ1()
     # runQ2()
     # runQ3()
-    runQ4()
-    # runQ5()
+    # runQ4()
+    runQ5()
 
 
 if __name__ == '__main__':
