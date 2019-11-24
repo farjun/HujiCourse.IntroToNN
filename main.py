@@ -3,6 +3,7 @@ import exModels
 from datetime import datetime
 import numpy as np
 import tensorflow as tf
+import subprocess
 
 def concatinate_dataset(x_dataset,y_dataset):
     chosenIndexes = np.random.choice(x_dataset.shape[0], x_dataset.shape[0])
@@ -176,20 +177,20 @@ def runQ3():
 
 def runQ4():
     model = exModels.ReducedOverfittingCNNModel()
-    test_ds, train_ds = create_data_sets()
-    trainAndTest(model, train_ds, test_ds)
-
-    model = exModels.ReducedOverfittingCNNModel()
     test_ds, train_ds = create_data_sets(maxTrainSize=250)
     trainAndTest(model, train_ds, test_ds)
 
-    model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
-    test_ds, train_ds = create_data_sets()
-    trainAndTest(model, train_ds, test_ds)
-
-    model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
-    test_ds, train_ds = create_data_sets(maxTrainSize=250)
-    trainAndTest(model, train_ds, test_ds)
+    # model = exModels.ReducedOverfittingCNNModel()
+    # test_ds, train_ds = create_data_sets(maxTrainSize=250)
+    # trainAndTest(model, train_ds, test_ds)
+    #
+    # model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
+    # test_ds, train_ds = create_data_sets()
+    # trainAndTest(model, train_ds, test_ds)
+    #
+    # model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
+    # test_ds, train_ds = create_data_sets(maxTrainSize=250)
+    # trainAndTest(model, train_ds, test_ds)
 
 def runQ5():
     # model = exModels.SumCalculatorModel()
@@ -204,8 +205,8 @@ def runQ5():
 def main():
     # runQ1()
     # runQ2()
-    runQ3()
-    # runQ4()
+    # runQ3()
+    runQ4()
     # runQ5()
 
 

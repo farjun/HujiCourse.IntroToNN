@@ -92,12 +92,11 @@ class ReducedOverfittingCNNModel(Model):
 
     def __init__(self, dropoutRate=0):
         super(ReducedOverfittingCNNModel, self).__init__()
-        self.conv1 = Conv2D(32, (3, 3), activation='relu')
+        self.conv1 = Conv2D(8, (3, 3), activation='relu')
         self.max_pool_1 = MaxPooling2D((2, 2))
         self.max_pool_2 = MaxPooling2D((2, 2))
         self.flatten = Flatten()
-        self.d1 = Dense(1024, activation='relu')
-        self.dropout = Dropout(dropoutRate)
+        self.d1 = Dense(124, activation='relu')
         self.d2 = Dense(10, activation='softmax')
 
     def call(self, x, training=None, mask=None):
@@ -106,10 +105,32 @@ class ReducedOverfittingCNNModel(Model):
         x = self.max_pool_2(x)
         x = self.flatten(x)
         x = self.d1(x)
-        x = self.dropout(x) if training else x
         x = self.d2(x)
         return x
 
+class DropoutOverfittingCNNModel(Model):
+
+    def __init__(self, dropoutRate=0):
+        super(DropoutOverfittingCNNModel, self).__init__()
+        self.conv1 = Conv2D(32, (3, 3), activation='relu')
+        self.dropout1 = Dropout(dropoutRate)
+        self.max_pool_1 = MaxPooling2D((2, 2))
+        self.max_pool_2 = MaxPooling2D((2, 2))
+        self.flatten = Flatten()
+        self.d1 = Dense(1024, activation='relu')
+        self.dropout2 = Dropout(dropoutRate)
+        self.d2 = Dense(10, activation='softmax')
+
+    def call(self, x, training=None, mask=None):
+        x = self.conv1(x)
+        x = self.dropout1(x) if training else x
+        x = self.max_pool_1(x)
+        x = self.max_pool_2(x)
+        x = self.flatten(x)
+        x = self.d1(x)
+        x = self.dropout2(x) if training else x
+        x = self.d2(x)
+        return x
 
 class SumCalculatorConcatinatedModel(Model):
 
