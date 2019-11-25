@@ -4,6 +4,7 @@ from datetime import datetime
 import numpy as np
 import tensorflow as tf
 import subprocess
+from matplotlib import cbook
 
 def concatinate_dataset(x_dataset,y_dataset):
     chosenIndexes = np.random.choice(x_dataset.shape[0], x_dataset.shape[0])
@@ -13,34 +14,39 @@ def concatinate_dataset(x_dataset,y_dataset):
     y_ds = y_dataset + y_train_shuffleed
     return x_ds, y_ds
 
-def sqweez_dataset(x_dataset,y_dataset):
-    chosenIndexes = np.random.choice(x_dataset.shape[0], x_dataset.shape[0])
+def stack_dataset(x_dataset, y_dataset):
+    y_dataset = y_dataset[:, np.newaxis]
+
+    chosenIndexes = np.random.permutation(len(x_dataset))
     x_train_shuffeled = x_dataset[chosenIndexes]
     y_train_shuffleed = y_dataset[chosenIndexes]
 
-    x_ds = np.stack((x_dataset, x_train_shuffeled),axis= 1)
-    y_ds = np.stack((y_dataset, y_train_shuffleed), axis = 1)
+    x_ds = np.concatenate((x_dataset, x_train_shuffeled),axis= -1)
+    y_ds = np.concatenate((y_dataset, y_train_shuffleed), axis = -1)
 
     return x_ds, y_ds
 
-def get_data(db, normalize=True):
-    if db == 'mnist':
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-
-    elif db == 'mnistdouble':
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-        x_train, y_train = concatinate_dataset(x_train,y_train)
-        x_test, y_test = concatinate_dataset(x_test, y_test)
-
-    elif db == 'mnistsqueezd':
-        (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-        x_train, y_train = sqweez_dataset(x_train,y_train)
-        x_test, y_test = sqweez_dataset(x_test, y_test)
-    else:
-        return None
+def get_data(data_type, normalize=True):
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
     if normalize:
         x_train, x_test = x_train / 255.0, x_test / 255.0
+
+    x_train, x_test = x_train[..., tf.newaxis], x_test[..., tf.newaxis]
+
+    if data_type == 'mnist':
+        pass
+
+    elif data_type == 'mnistdouble':
+        x_train, y_train = concatinate_dataset(x_train, y_train)
+        x_test, y_test = concatinate_dataset(x_test, y_test)
+
+    elif data_type == 'mnistsqueezd':
+
+        x_train, y_train = stack_dataset(x_train, y_train)
+        x_test, y_test = stack_dataset(x_test, y_test)
+    else:
+        return None
 
     return (x_train, y_train), (x_test, y_test)
 
@@ -53,8 +59,7 @@ def create_data_sets(db: str = "mnist", maxTrainSize: int = 0):
         x_train = x_train[chosenIndexes]
         y_train = y_train[chosenIndexes]
 
-    x_train = x_train[..., tf.newaxis]
-    x_test = x_test[..., tf.newaxis]
+
     train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(32)
     test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
     return test_ds, train_ds
@@ -77,6 +82,24 @@ def get_train_step(model: tf.keras.Model, loss_object):
 
     return train_step, train_loss, train_accuracy
 
+def get_train_step_2_labels(model: tf.keras.Model, loss_object):
+    optimizer = tf.keras.optimizers.Adam()
+    train_loss = tf.keras.metrics.Mean(name='train_loss')
+    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
+
+    @tf.function
+    def train_step(images, labels):
+        with tf.GradientTape() as tape:
+            predictions = model(images, training=True)
+            loss1 = loss_object(labels[..., 0], predictions[..., 0])
+            loss2 = loss_object(labels[..., 1], predictions[..., 1])
+            loss = [loss1,loss2]
+            gradients = tape.gradient(loss, model.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+        train_loss(loss)
+        train_accuracy(labels, predictions)
+
+    return train_step, train_loss, train_accuracy
 
 def get_test_step(model, loss_object):
     test_loss = tf.keras.metrics.Mean(name='test_loss')
@@ -176,26 +199,19 @@ def runQ3():
     # trainAndTest(model, train_ds, test_ds)
 
 def runQ4():
-    # model = exModels.ReducedOverfittingCNNModel()
-    # test_ds, train_ds = create_data_sets(maxTrainSize=250)
-    # trainAndTest(model, train_ds, test_ds)
+    model = exModels.ReducedOverfittingCNNModel()
+    test_ds, train_ds = create_data_sets(maxTrainSize=250)
+    trainAndTest(model, train_ds, test_ds)
 
     model = exModels.DropoutOverfittingCNNModel(dropoutRate=0.3)
     test_ds, train_ds = create_data_sets(maxTrainSize=250)
     trainAndTest(model, train_ds, test_ds)
-    #
-    # model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
-    # test_ds, train_ds = create_data_sets()
-    # trainAndTest(model, train_ds, test_ds)
-    #
-    # model = exModels.ReducedOverfittingCNNModel(dropoutRate=0.3)
-    # test_ds, train_ds = create_data_sets(maxTrainSize=250)
-    # trainAndTest(model, train_ds, test_ds)
+
 
 def runQ5():
-    # model = exModels.SumCalculatorModel()
-    # test_ds, train_ds = create_data_sets(db = "mnistdouble")
-    # trainAndTest(model, train_ds, test_ds)
+    model = exModels.SumCalculatorConcatinatedModel()
+    test_ds, train_ds = create_data_sets(db = "mnistdouble")
+    trainAndTest(model, train_ds, test_ds)
 
     model = exModels.SumCalculatorStackedModel()
     test_ds, train_ds = create_data_sets(db = "mnistsqueezd")
@@ -206,7 +222,7 @@ def main():
     # runQ1()
     # runQ2()
     # runQ3()
-    # runQ4()
+    runQ4()
     runQ5()
 
 

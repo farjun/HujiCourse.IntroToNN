@@ -182,3 +182,5 @@ class SumCalculatorStackedModel(Model):
         x = self.d2(x)
         x = self.reshaper(x)
         return x
+
+
