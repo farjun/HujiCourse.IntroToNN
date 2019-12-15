@@ -1,10 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
-import exModels
+from ex1 import exModels
 from datetime import datetime
 import numpy as np
 import tensorflow as tf
-import subprocess
-from matplotlib import cbook
 
 def concatinate_dataset(x_dataset,y_dataset):
     chosenIndexes = np.random.choice(x_dataset.shape[0], x_dataset.shape[0])
