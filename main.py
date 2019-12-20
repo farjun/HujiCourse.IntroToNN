@@ -6,7 +6,7 @@ from PIL import Image
 from alexnet_model.classes import classes
 import tensorflow as tf
 from _datetime import datetime
-EPSILON = 1e-30
+
 
 def getTestTrainSummaryWriters(modelName):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -17,12 +17,14 @@ def getTestTrainSummaryWriters(modelName):
     test_summary_writer = tf.summary.create_file_writer(base_path + '/test')
     return train_summary_writer, test_summary_writer
 
+
 def getSummaryWriter(modelName):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     base_path = f'logs/{modelName}/' + current_time
     print("run: tensorboard --logdir ./" + base_path + " --port 6006")
 
     return tf.summary.create_file_writer(base_path)
+
 
 def getImage(imageName, directory="./alexnet_weights/"):
     I = Image.open(directory + imageName).resize([224, 224])
@@ -45,13 +47,15 @@ def getModel(img_name, img_dir, weight_dir) -> (AlexnetModel, np.ndarray):
 
 
 @tf.function
-def loss_object(predictions:tf.Tensor, target_index,neuron, I, normalizition_lambda=1e-3):
+def loss_object(neuron, I, normalizition_lambda=1e-3):
     ret = neuron - normalizition_lambda * (tf.norm(I) ** 2)
-    return ret**2
+    return ret
 
-def get_train_step(model: AlexnetModel, I, target_index, loss_object, layer_name):
+
+def get_train_step(model: AlexnetModel, I, loss_object, layer_name):
     optimizer = tf.keras.optimizers.Adam()
     train_loss = tf.keras.metrics.Mean(name='train_loss')
+
     # train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
     @tf.function
@@ -62,13 +66,16 @@ def get_train_step(model: AlexnetModel, I, target_index, loss_object, layer_name
             layer_shape = wanted_layer.shape
             if len(layer_shape) == 2:  # affine layer:
                 neuron = wanted_layer[0, 99]
-                Sc = loss_object(prediction,target_index,neuron, I)
+                Sc = loss_object(neuron, I)
             else:  # conv layer
                 neuron = wanted_layer[0]
-                Sc = loss_object(prediction,target_index,neuron, I)
-            actual_loss = 1/(EPSILON+Sc)
+                # Sc = loss_object(prediction, target_index, neuron, I)
+                neuron_filter = neuron[:, :, 20]
+                Sc = loss_object(neuron_filter, I)
+            actual_loss = -Sc
             gradients = tape.gradient(actual_loss, [I])
             optimizer.apply_gradients(zip(gradients, [I]))
+
     # return train_step, train_loss, train_accuracy
     return train_step, train_loss
 
@@ -88,28 +95,27 @@ def get_test_step(model, loss_object):
 
 
 def train():
+    # import shutil # Uncomment if you want to clear the folder
+    # shutil.rmtree("./logs/Q1-I")
     model, I = getModel("poodle.png", "./alexnet_weights/", "./alexnet_weights/")
-    c,_ = model(I)
-    top_ind = np.argmax(c)
     I_v = tf.Variable(initial_value=tf.zeros((1, 224, 224, 3)), trainable=True)
     I_v.initialized_value()
-    train_step, train_loss = get_train_step(model, I_v, top_ind, loss_object, "softmax")
-    iter_count =2000
+    train_step, train_loss = get_train_step(model, I_v, loss_object, "conv3")
+    iter_count = 2000
     summaryWriter = getSummaryWriter("Q1-I")
     for i in tqdm(range(1, iter_count + 1)):
         train_step()
-        if i%100 == 0:
-            pass
+        if i % 100 == 0:
             plot_i = I_v - tf.reduce_min(I_v)
             plot_i = plot_i / tf.reduce_max(I_v)
-
             with summaryWriter.as_default():
                 tf.summary.image("outI", plot_i, step=i)
+
 
 def main():
     # Create an instance of the model
     model, I = getModel("poodle.png", "./alexnet_weights/", "./alexnet_weights/")
-    c,_ = model(I)
+    c, _ = model(I)
     top_ind = np.argmax(c)
     print("Top1: %d, %s" % (top_ind, classes[top_ind]))
 
