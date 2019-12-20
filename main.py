@@ -4,12 +4,25 @@ from alexnet_model.alexnet import AlexnetModel, buildAlexnetThatOutputsAt
 import numpy as np
 from PIL import Image
 from alexnet_model.classes import classes
-from enums import AlexnetLayers
 import tensorflow as tf
-from tensorflow.keras import Input
-
+from _datetime import datetime
 EPSILON = 1e-30
 
+def getTestTrainSummaryWriters(modelName):
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    base_path = f'logs/{modelName}/' + current_time
+    print("run: tensorboard --logdir ./" + base_path + '/train' + " --port 6006")
+    print("run: tensorboard --logdir ./" + base_path + '/test' + " --port 6006")
+    train_summary_writer = tf.summary.create_file_writer(base_path + '/train')
+    test_summary_writer = tf.summary.create_file_writer(base_path + '/test')
+    return train_summary_writer, test_summary_writer
+
+def getSummaryWriter(modelName):
+    current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+    base_path = f'logs/{modelName}/' + current_time
+    print("run: tensorboard --logdir ./" + base_path + " --port 6006")
+
+    return tf.summary.create_file_writer(base_path)
 
 def getImage(imageName, directory="./alexnet_weights/"):
     I = Image.open(directory + imageName).resize([224, 224])
@@ -47,7 +60,7 @@ def get_train_step(model: AlexnetModel, I, loss_object, layer_name):
             predictions, outputs = model(I, training=True)
             if layer_name not in outputs:
                 print(f"No such layer {layer_name}, to possiblities are {outputs.keys()}")
-            neuron :tf.keras.layers.Layer= outputs[layer_name]
+            neuron :tf.keras.layers.Layer = outputs[layer_name]
             loss = loss_object(neuron, I)
             actual_loss = 1 / (loss + EPSILON)  # converting max problem to min problem , EPSILON for avoiding zero div
         gradients = tape.gradient(actual_loss, [I])
@@ -79,10 +92,13 @@ def train():
     I_v = tf.Variable(initial_value=tf.zeros((1, 224, 224, 3)), trainable=True)
     train_step, train_loss = get_train_step(model, I_v, loss_object, "conv1")
     iter_count = 10000
+    summaryWriter = getSummaryWriter("Q1-I")
+
     for i in tqdm(range(1,iter_count+1)):
         train_step()
-        if i % 500 == 0:
-            pass
+        if i%100 == 0:
+            with summaryWriter.as_default():
+                tf.summary.image("outI", I_v, step=i)
 
 def main():
     # Create an instance of the model
