@@ -38,7 +38,7 @@ class AlexnetModel(Model):
         self.relu = Activation('relu')
         self.maxpool = MaxPooling2D(pool_size=(3, 3), strides=(2, 2), padding='valid')
         # self.dropout = Dropout(0.4)
-        self.softmax = Activation('softmax')
+        self.softmax = Activation('softmax', )
 
         # Conv layers
         self.conv1 = Conv2D(name="conv1", filters=96, input_shape=(224, 224, 3), kernel_size=(11, 11), strides=(4, 4),

@@ -65,12 +65,13 @@ def get_train_step(model: AlexnetModel, I, loss_object, layer_name):
             wanted_layer = outputs[layer_name]
             layer_shape = wanted_layer.shape
             if len(layer_shape) == 2:  # affine layer:
-                neuron = wanted_layer[0, 99]
+                neuron = wanted_layer[0][1] #class goldfish
                 Sc = loss_object(neuron, I)
             else:  # conv layer
                 neuron = wanted_layer[0]
                 # Sc = loss_object(prediction, target_index, neuron, I)
-                neuron_filter = neuron[:, :, 20]
+                neuron_filter = tf.reshape(neuron[:, :, 20])
+                tf.print(type(neuron_filter))
                 Sc = loss_object(neuron_filter, I)
             actual_loss = -Sc
             gradients = tape.gradient(actual_loss, [I])
@@ -98,10 +99,10 @@ def train():
     # import shutil # Uncomment if you want to clear the folder
     # shutil.rmtree("./logs/Q1-I")
     model, I = getModel("poodle.png", "./alexnet_weights/", "./alexnet_weights/")
-    I_v = tf.Variable(initial_value=tf.zeros((1, 224, 224, 3)), trainable=True)
+    I_v = tf.Variable(initial_value=tf.random.normal((1, 224, 224, 3)), trainable=True)
     I_v.initialized_value()
-    train_step, train_loss = get_train_step(model, I_v, loss_object, "conv3")
-    iter_count = 2000
+    train_step, train_loss = get_train_step(model, I_v, loss_object, "dense2")
+    iter_count = 6000
     summaryWriter = getSummaryWriter("Q1-I")
     for i in tqdm(range(1, iter_count + 1)):
         train_step()
