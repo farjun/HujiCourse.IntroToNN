@@ -8,7 +8,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
 from PIL import Image
-from classes import classes
+from alexnet_weights.classes import classes
 
 import tensorflow as tf
 

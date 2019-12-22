@@ -123,12 +123,3 @@ def add_to_dict(key: str, item: tf.keras.layers.Layer, to_add: typing.Dict[str, 
     to_add[key] = item
     return item
 
-
-def buildAlexnetThatOutputsAt(cnn, stopAt: AlexnetLayers):
-    """
-    not working yet
-    """
-    x = Input(shape=(224, 224, 3))
-    cnn.call(x, )
-
-    return Model(inputs=cnn.input, outputs=cnn.get_layer(stopAt.name).output)
