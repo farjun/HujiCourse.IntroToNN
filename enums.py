@@ -17,10 +17,15 @@ class NeuronChoice(object):
     self.index = index
 
     #sanity check
-    if layer.startswith("conv") and (filter is None or row is None or col is None):
+    if self.isConvLayer() and (filter is None or row is None or col is None):
       raise ValueError("conv layer neurons need to have filter, row and col")
 
-    if layer.startswith("dense") and (index is None):
+    if self.isDenseLayer() and (index is None):
       raise ValueError("dense layer neurons need to have index")
 
 
+  def isConvLayer(self):
+    return self.layer.startswith("conv")
+
+  def isDenseLayer(self):
+    return self.layer.startswith("dense")
