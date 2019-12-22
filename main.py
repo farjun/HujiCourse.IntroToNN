@@ -48,9 +48,7 @@ def getModel(img_name, img_dir, weight_dir) -> (AlexnetModel, np.ndarray):
 
 @tf.function
 def loss_object(neuron, I, normalizition_lambda=1e-3):
-    ret = neuron - normalizition_lambda * (tf.norm(I) ** 2)
-    return ret
-
+    return    neuron - normalizition_lambda * (tf.norm(I) ** 2)
 
 def get_train_step(model: AlexnetModel, I, loss_object, layer_name):
     optimizer = tf.keras.optimizers.Adam()
@@ -70,9 +68,8 @@ def get_train_step(model: AlexnetModel, I, loss_object, layer_name):
             else:  # conv layer
                 neuron = wanted_layer[0]
                 # Sc = loss_object(prediction, target_index, neuron, I)
-                neuron_filter = tf.reshape(neuron[:, :, 20])
-                tf.print(type(neuron_filter))
-                Sc = loss_object(neuron_filter, I)
+                neuron_pixel = neuron[5,5,78]
+                Sc = loss_object(neuron_pixel, I)
             actual_loss = -Sc
             gradients = tape.gradient(actual_loss, [I])
             optimizer.apply_gradients(zip(gradients, [I]))
@@ -81,28 +78,16 @@ def get_train_step(model: AlexnetModel, I, loss_object, layer_name):
     return train_step, train_loss
 
 
-def get_test_step(model, loss_object):
-    test_loss = tf.keras.metrics.Mean(name='test_loss')
-    test_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='test_accuracy')
-
-    @tf.function
-    def test_step(images, labels):
-        predictions = model(images, training=False)
-        t_loss = loss_object(labels, predictions)
-        test_loss(t_loss)
-        test_accuracy(labels, predictions)
-
-    return test_step, test_loss, test_accuracy
-
-
 def train():
     # import shutil # Uncomment if you want to clear the folder
     # shutil.rmtree("./logs/Q1-I")
     model, I = getModel("poodle.png", "./alexnet_weights/", "./alexnet_weights/")
     I_v = tf.Variable(initial_value=tf.random.normal((1, 224, 224, 3)), trainable=True)
     I_v.initialized_value()
-    train_step, train_loss = get_train_step(model, I_v, loss_object, "dense2")
-    iter_count = 6000
+    # train_step, train_loss = get_train_step(model, I_v, loss_object, "dense2")
+    layer = "conv1"
+    train_step, train_loss = get_train_step(model, I_v, loss_object, layer)
+    iter_count = 5000
     summaryWriter = getSummaryWriter("Q1-I")
     for i in tqdm(range(1, iter_count + 1)):
         train_step()
@@ -110,8 +95,8 @@ def train():
             plot_i = I_v - tf.reduce_min(I_v)
             plot_i = plot_i / tf.reduce_max(I_v)
             with summaryWriter.as_default():
-                tf.summary.image("outI", plot_i, step=i)
-
+                tf.summary.image(layer, plot_i, step=i)
+    summaryWriter.close()
 
 def main():
     # Create an instance of the model
