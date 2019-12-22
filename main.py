@@ -49,6 +49,7 @@ def getLossFunction(normalizition_lambda=1e-3, norm= None):
 def getDistribution(distributionKey:str):
     if distributionKey == 'normal-1':
         return tf.random.normal((1, 224, 224, 3))
+    raise ValueError("no such distributionKey: " + distributionKey)
 
 
 def get_train_step(model: AlexnetModel, I, loss_object, neuronChoice : NeuronChoice):
@@ -76,7 +77,7 @@ def get_train_step(model: AlexnetModel, I, loss_object, neuronChoice : NeuronCho
     return train_step, loss_object
 
 
-def train(layer: str = "conv2", filter = None, row = None, col = None, index = None, distributionKey ='normal', numberOfIterations = None):
+def train(layer: str = "conv2", filter = None, row = None, col = None, index = None, distributionKey ='normal-1', numberOfIterations = None):
     # import shutil # Uncomment if you want to clear the folder
     # shutil.rmtree("./logs/Q1-I")
     model, I = getModel("poodle.png", "./alexnet_weights/", "./alexnet_weights/")
