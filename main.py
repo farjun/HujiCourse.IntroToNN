@@ -77,7 +77,7 @@ def get_train_step(model: AlexnetModel, I, loss_object, neuronChoice : NeuronCho
     return train_step, loss_object
 
 
-def train(layer: str = "conv2", filter = None, row = None, col = None, index = None, distributionKey ='normal-1', numberOfIterations = None):
+def train(layer: str = "conv2", filter = None, row = None, col = None, index = None, distributionKey ='normal-1', numberOfIterations = None, savefig = True):
     # import shutil # Uncomment if you want to clear the folder
     # shutil.rmtree("./logs/Q1-I")
     model, I = getModel("poodle.png", "./alexnet_weights/", "./alexnet_weights/")
@@ -97,7 +97,7 @@ def train(layer: str = "conv2", filter = None, row = None, col = None, index = N
 
     for i in tqdm(range(1, iter_count + 1)):
         train_step()
-        if i % 100 == 0:
+        if i % 100 == 0 and savefig:
             plot_i = I_v - tf.reduce_min(I_v)
             plot_i = plot_i / tf.reduce_max(I_v)
             with summaryWriter.as_default():
@@ -116,6 +116,6 @@ def main():
 
 
 if __name__ == "__main__":
-    train(layer = "conv2", filter = 78, row = 5, col = 5)
+    train(layer = "conv3", filter = 78, row = 0, col = 0)
     # main()
     # load_model("alexnet_weights")
