@@ -115,7 +115,9 @@ def train(layer: str = "conv2",
     summaryWriter.close()
 
 
-def q3(target_index=None):
+def q3(target_index=None,
+       reg_lambda=1e-3,
+       learning_rate=0.001):
     image_name = "dog.png"
     model, I = getModel(image_name, "./alexnet_weights/", "./alexnet_weights/")
     c, _ = model(I)
@@ -123,23 +125,24 @@ def q3(target_index=None):
     print(f"image={image_name} , prob={c[0][top_ind]}")
     print("Top1: %d, %s" % (top_ind, classes[top_ind]))
 
-    target_index = target_index if target_index else  (top_ind + 1) % len(classes)
+    target_index = target_index if target_index else (top_ind + 1) % len(classes)
     noise = tf.Variable(initial_value=tf.random.truncated_normal(I.shape))
 
     iterations = 10 ** 5
-    step = get_adversarial_step(model, I, noise, target_index)
+    step = get_adversarial_step(model, I, noise, target_index, reg_lambda, learning_rate)
     for i in tqdm(range(1, iterations + 1), desc="Q3"):
         step()
         if i % 100 == 0:
-            c, _ = model(I+noise)
+            c, _ = model(I + noise)
             top_ind = np.argmax(c)
             print(f"image={image_name} , prob={c[0][top_ind]}")
+            print(f"image={image_name} , prob={c[0][target_index]}")
             print("Top1: %d, %s" % (top_ind, classes[top_ind]))
 
 
-def get_adversarial_step(model: tf.keras.Model, image, noise, label):
+def get_adversarial_step(model: tf.keras.Model, image, noise, label, reg_lambda=1e-3, learning_rate=0.001):
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
-    optimizer = tf.keras.optimizers.Adam()
+    optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     # train_loss = tf.keras.metrics.Mean(name='train_loss')
     # train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
@@ -148,8 +151,7 @@ def get_adversarial_step(model: tf.keras.Model, image, noise, label):
     def train_step():
         with tf.GradientTape() as tape:
             predictions, _ = model(image + noise, training=True)
-            loss = loss_object(label, predictions)
-            loss += 0.01 * tf.norm(noise)
+            loss = loss_object(label, predictions) + reg_lambda * (tf.norm(noise) ** 2)
         gradients = tape.gradient(loss, [noise])
         optimizer.apply_gradients(zip(gradients, [noise]))
         # train_loss(loss)
@@ -167,7 +169,7 @@ def main():
 
 
 if __name__ == "__main__":
-    q3()
+    q3(target_index=2,learning_rate=0.01,reg_lambda=1e-3)
     # train(layer="conv3", filter=78, row=0, col=0)
     # main()
     # load_model("alexnet_weights")
