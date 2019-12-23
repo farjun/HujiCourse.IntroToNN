@@ -107,8 +107,7 @@ def train(layer: str = "conv2",
     for i in tqdm(range(1, iter_count + 1)):
         train_step()
         if i % 100 == 0 and savefig:
-            plot_i = I_v - tf.reduce_min(I_v)
-            plot_i = plot_i / tf.reduce_max(I_v)
+            plot_i = fix_image_to_show(I_v)
             with summaryWriter.as_default():
                 tf.summary.image(neuronChoice.layer, plot_i, step=i)
 
@@ -118,70 +117,84 @@ def train(layer: str = "conv2",
 def q3(target_index=None,
        reg_lambda=1e-3,
        learning_rate=0.001,
-       report_evert=100):
-    import shutil # Uncomment if you want to clear the folder
-    try:
-        shutil.rmtree("./logs/Q3-I")
-    except:
-        pass
+       report_evert=1,
+       iterations=100,
+       clear_prev_logs=True):
+    path = "Q3-I"
+    if clear_prev_logs:
+        rmtree_path("./logs/"+path)
 
     image_name = "dog.png"
     model, I = getModel(image_name, "./alexnet_weights/", "./alexnet_weights/")
     c, _ = model(I)
-    top_ind = np.argmax(c)
+    src_top_ind = np.argmax(c)
 
-    target_index = target_index if target_index else (top_ind + 1) % len(classes)
+    target_index = target_index if target_index else (src_top_ind + 1) % len(classes)
     target_index = tf.constant(target_index)
     noise = tf.Variable(initial_value=tf.random.truncated_normal(I.shape))
 
-    print(f"image={image_name} , prob={c[0][top_ind]}")
+    print(f"image={image_name} , prob={c[0][src_top_ind]}")
     print(f"image={image_name} ,target_index prob={c[0][target_index]}")
-    print("Top1: %d, %s" % (top_ind, classes[top_ind]))
+    print("Top1: %d, %s" % (src_top_ind, classes[src_top_ind]))
 
-    summaryWriter = getSummaryWriter("Q3-I")
+    image_writer = getSummaryWriter(f"{path}/images")
+    true_idx_probability_writer = getSummaryWriter(f"{path}/true_idx_probability")
+    target_idx_probability_writer = getSummaryWriter(f"{path}/target_idx_probability")
 
-    iterations = 10 ** 5
     step = get_adversarial_step(model, I, noise, target_index, reg_lambda, learning_rate)
+    once = False
     for i in tqdm(range(1, iterations + 1), desc="Q3"):
         step()
         if i % report_evert == 0:
             c, _ = model(I + noise)
-            top_ind = np.argmax(c)
-            print()
-            print(f"image={image_name} ,top_ind prob={c[0][top_ind]}")
-            print(f"image={image_name} ,target_index prob={c[0][target_index]}")
-            print("Top1: %d, %s" % (top_ind, classes[top_ind]))
-            with summaryWriter.as_default():
-                tf.summary.image("Noise", normalize(rgb_to_bgr(noise)), step=i)
-                tf.summary.image("Noise And Image", normalize(rgb_to_bgr(I + noise)), step=i)
+            with image_writer.as_default():
+                tf.summary.image("Image", fix_image_to_show(I), step=i)
+                tf.summary.image("Noise", fix_image_to_show(noise), step=i)
+                tf.summary.image("Noise And Image", fix_image_to_show(I + noise), step=i)
+            with target_idx_probability_writer.as_default():
+                tf.summary.scalar("class probability", c[0][target_index], step=i)
+            with true_idx_probability_writer.as_default():
+                tf.summary.scalar("class probability", c[0][src_top_ind], step=i)
 
-    summaryWriter.close()
+            if not once and c[0][target_index] > 0.98:
+                print(f"We fooled the net first on step {i}")
+                once = True
+
+
+def rmtree_path(path):
+    import shutil
+    try:
+        shutil.rmtree(path)
+    except:
+        pass
+
+
+def fix_image_to_show(I):
+    return normalize(rgb_to_bgr(I))
 
 
 def normalize(I):
-    return np.clip(I + np.mean(I), 0, 256)
+    I = I - tf.reduce_min(I)
+    I = I / tf.reduce_max(I)
+    return I
 
 
 def rgb_to_bgr(I):
-    return tf.reshape(np.flip(I[0], 2),I.shape)
+    return tf.reshape(np.flip(I[0], 2), I.shape)
 
 
 def get_adversarial_step(model: tf.keras.Model, image, noise, label, reg_lambda=0.01, learning_rate=0.001):
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-    # train_loss = tf.keras.metrics.Mean(name='train_loss')
-    # train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
-
     @tf.function
     def train_step():
         with tf.GradientTape() as tape:
             predictions, _ = model(image + noise, training=True)
-            loss = loss_object(label, predictions) + reg_lambda * (tf.norm(noise) ** 2)
+            reg_loss = tf.reduce_mean(noise ** 2)
+            loss = loss_object(label, predictions) + reg_lambda * reg_loss
         gradients = tape.gradient(loss, [noise])
         optimizer.apply_gradients(zip(gradients, [noise]))
-        # train_loss(loss)
-        # train_accuracy(labels, predictions)
 
     return train_step
 
@@ -195,7 +208,7 @@ def main():
 
 
 if __name__ == "__main__":
-    q3()
+    q3(iterations=300, learning_rate=0.1,target_index=401)
     # train(layer="conv3", filter=78, row=0, col=0)
     # main()
     # load_model("alexnet_weights")
