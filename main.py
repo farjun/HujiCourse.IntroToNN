@@ -151,9 +151,9 @@ def q3(target_index=None,
             print(f"image={image_name} ,top_ind prob={c[0][top_ind]}")
             print(f"image={image_name} ,target_index prob={c[0][target_index]}")
             print("Top1: %d, %s" % (top_ind, classes[top_ind]))
-            # with summaryWriter.as_default():
-            #     tf.summary.image("Noise", normalize(rgb_to_bgr(noise)), step=i)
-            #     tf.summary.image("Noise And Image", normalize(rgb_to_bgr(I + noise)), step=i)
+            with summaryWriter.as_default():
+                tf.summary.image("Noise", normalize(rgb_to_bgr(noise)), step=i)
+                tf.summary.image("Noise And Image", normalize(rgb_to_bgr(I + noise)), step=i)
 
     summaryWriter.close()
 
