@@ -117,7 +117,8 @@ def train(layer: str = "conv2",
 
 def q3(target_index=None,
        reg_lambda=1e-3,
-       learning_rate=0.001):
+       learning_rate=0.001,
+       report_evert=100):
     image_name = "dog.png"
     model, I = getModel(image_name, "./alexnet_weights/", "./alexnet_weights/")
     c, _ = model(I)
@@ -132,11 +133,11 @@ def q3(target_index=None,
     step = get_adversarial_step(model, I, noise, target_index, reg_lambda, learning_rate)
     for i in tqdm(range(1, iterations + 1), desc="Q3"):
         step()
-        if i % 100 == 0:
+        if i % report_evert == 0:
             c, _ = model(I + noise)
             top_ind = np.argmax(c)
-            print(f"image={image_name} , prob={c[0][top_ind]}")
-            print(f"image={image_name} , prob={c[0][target_index]}")
+            print(f"image={image_name} ,top_ind prob={c[0][top_ind]}")
+            print(f"image={image_name} ,target_index prob={c[0][target_index]}")
             print("Top1: %d, %s" % (top_ind, classes[top_ind]))
 
 
