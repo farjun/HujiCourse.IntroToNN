@@ -115,7 +115,7 @@ def train(layer: str = "conv2",
     summaryWriter.close()
 
 
-def q3():
+def q3(target_index=None):
     image_name = "dog.png"
     model, I = getModel(image_name, "./alexnet_weights/", "./alexnet_weights/")
     c, _ = model(I)
@@ -123,7 +123,7 @@ def q3():
     print(f"image={image_name} , prob={c[0][top_ind]}")
     print("Top1: %d, %s" % (top_ind, classes[top_ind]))
 
-    target_index = (top_ind + 1) % len(classes)
+    target_index = target_index if target_index else  (top_ind + 1) % len(classes)
     noise = tf.Variable(initial_value=tf.random.truncated_normal(I.shape))
 
     iterations = 10 ** 5
