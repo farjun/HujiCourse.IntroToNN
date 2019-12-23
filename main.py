@@ -119,15 +119,26 @@ def q3(target_index=None,
        reg_lambda=1e-3,
        learning_rate=0.001,
        report_evert=100):
+    import shutil # Uncomment if you want to clear the folder
+    try:
+        shutil.rmtree("./logs/Q3-I")
+    except:
+        pass
+
     image_name = "dog.png"
     model, I = getModel(image_name, "./alexnet_weights/", "./alexnet_weights/")
     c, _ = model(I)
     top_ind = np.argmax(c)
-    print(f"image={image_name} , prob={c[0][top_ind]}")
-    print("Top1: %d, %s" % (top_ind, classes[top_ind]))
 
     target_index = target_index if target_index else (top_ind + 1) % len(classes)
+    target_index = tf.constant(target_index)
     noise = tf.Variable(initial_value=tf.random.truncated_normal(I.shape))
+
+    print(f"image={image_name} , prob={c[0][top_ind]}")
+    print(f"image={image_name} ,target_index prob={c[0][target_index]}")
+    print("Top1: %d, %s" % (top_ind, classes[top_ind]))
+
+    summaryWriter = getSummaryWriter("Q3-I")
 
     iterations = 10 ** 5
     step = get_adversarial_step(model, I, noise, target_index, reg_lambda, learning_rate)
@@ -136,12 +147,26 @@ def q3(target_index=None,
         if i % report_evert == 0:
             c, _ = model(I + noise)
             top_ind = np.argmax(c)
+            print()
             print(f"image={image_name} ,top_ind prob={c[0][top_ind]}")
             print(f"image={image_name} ,target_index prob={c[0][target_index]}")
             print("Top1: %d, %s" % (top_ind, classes[top_ind]))
+            with summaryWriter.as_default():
+                tf.summary.image("Noise", normalize(rgb_to_bgr(noise)), step=i)
+                tf.summary.image("Noise And Image", normalize(rgb_to_bgr(I + noise)), step=i)
+
+    summaryWriter.close()
 
 
-def get_adversarial_step(model: tf.keras.Model, image, noise, label, reg_lambda=1e-3, learning_rate=0.001):
+def normalize(I):
+    return np.clip(I + np.mean(I), 0, 256)
+
+
+def rgb_to_bgr(I):
+    return tf.reshape(np.flip(I[0], 2),I.shape)
+
+
+def get_adversarial_step(model: tf.keras.Model, image, noise, label, reg_lambda=0.01, learning_rate=0.001):
     loss_object = tf.keras.losses.SparseCategoricalCrossentropy()
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -170,7 +195,7 @@ def main():
 
 
 if __name__ == "__main__":
-    q3(target_index=2,learning_rate=0.01,reg_lambda=1e-3)
+    q3()
     # train(layer="conv3", filter=78, row=0, col=0)
     # main()
     # load_model("alexnet_weights")
