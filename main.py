@@ -9,7 +9,9 @@ from _datetime import datetime
 from enums import NeuronChoice
 import utils
 from tensorflow.keras.losses import KLDivergence
+
 IMAGE_NAME = 'poodle.png'
+
 
 def getSummaryWriter(modelName):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -38,7 +40,7 @@ def getModel(img_name, img_dir, weight_dir) -> (AlexnetModel, np.ndarray):
     return model, I
 
 
-def getQ2Loss(imageShape, normalizition_lambda=1e-3, resizeBy = 2):
+def getQ2Loss(imageShape, normalizition_lambda=1e-3, resizeBy=2):
     numOfRows, numOfCols = utils.resizeShape(imageShape, resizeBy)
 
     def q2_loss(neuron, I):
@@ -47,28 +49,32 @@ def getQ2Loss(imageShape, normalizition_lambda=1e-3, resizeBy = 2):
         imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(I, rgb=True)
         kl = KLDivergence()
         diffs = kl(fuorierMatrix, imFourierC0) + kl(fuorierMatrix, imFourierC1) + kl(fuorierMatrix, imFourierC2)
-        loss = neuron - tf.cast(normalizition_lambda * diffs, dtype = tf.float32)
+        loss = neuron - tf.cast(normalizition_lambda * diffs, dtype=tf.float32)
         return loss
 
     return q2_loss
+
 
 @tf.function
 def q1_loss(neuron, I, normalizition_lambda=1e-3):
     return neuron - normalizition_lambda * (tf.norm(I) ** 2)
 
 
+# TODO this function is exact as above but allow us to run twice with different neuron
+def q1_loss_not_tf_function(neuron, I, normalizition_lambda=1e-3):
+    return neuron - normalizition_lambda * (tf.norm(I) ** 2)
 
-def getDistribution(distributionKey:str, shape = (1, 224, 224, 3)):
+
+def getDistribution(distributionKey: str, shape=(1, 224, 224, 3)):
     if distributionKey == 'normal-1':
         return tf.random.normal(shape)
 
-    if distributionKey=='zeros':
+    if distributionKey == 'zeros':
         return tf.zeros(shape)
     raise ValueError("no such distributionKey: " + distributionKey)
 
 
-def get_train_step(model: AlexnetModel, I, loss_object, optimizer, neuronChoice : NeuronChoice):
-
+def get_train_step(model: AlexnetModel, I, loss_object, optimizer, neuronChoice: NeuronChoice):
     @tf.function
     def train_step():
         with tf.GradientTape() as tape:
@@ -91,20 +97,19 @@ def get_train_step(model: AlexnetModel, I, loss_object, optimizer, neuronChoice 
 
     return train_step, loss_object
 
+
 def spreadImPixels(I):
     plot_i = I - tf.reduce_min(I)
     return plot_i / tf.reduce_max(I)
 
-def train(neuronChoice, loss_object, Q = "Q1", distributionKey ='normal-1', numberOfIterations = None, beforeImShow = None):
-    # import shutil # Uncomment if you want to clear the folder
-    # shutil.rmtree("./logs/Q1-I")
+
+def train(neuronChoice, loss_object, log_folder_name="Q1", distributionKey='normal-1', numberOfIterations=None,
+          beforeImShow=None):
     model, I = getModel(IMAGE_NAME, "./alexnet_weights/", "./alexnet_weights/")
     I_v = tf.Variable(initial_value=getDistribution(distributionKey), trainable=True)
     I_v.initialized_value()
-
     optimizer = tf.keras.optimizers.Adam()
-
-    summaryWriter = getSummaryWriter(Q)
+    summaryWriter = getSummaryWriter(log_folder_name)
     train_step, train_loss = get_train_step(model, I_v, loss_object, optimizer, neuronChoice)
 
     if numberOfIterations is None:
@@ -121,15 +126,38 @@ def train(neuronChoice, loss_object, Q = "Q1", distributionKey ='normal-1', numb
 
     summaryWriter.close()
 
-def Q1():
-    neuronChoice = NeuronChoice(layer =  "conv3", filter = 78, row = 0, col = 0)
-    train(neuronChoice, q1_loss, Q= "Q1", beforeImShow = fix_image_to_show)
+
+def Q1(clear_folder=True):
+    base_path = "Q1"
+    if clear_folder:
+        rmtree_path("./logs/" + base_path)
+
+    configs = [
+        NeuronChoice(layer="conv1", filter=78, row=0, col=0),
+        NeuronChoice(layer="conv2", filter=10, row=0, col=0),
+        NeuronChoice(layer="conv3", filter=78, row=0, col=0),
+        NeuronChoice(layer="conv4", filter=78, row=0, col=0),
+        NeuronChoice(layer="dense1", index=10),
+        NeuronChoice(layer="dense2", index=10),
+        NeuronChoice(layer="dense3", index=99)  # class 99 is "goose"
+    ]
+
+    for neuronChoice in configs:
+        print(neuronChoice.layer)
+        train(
+            neuronChoice,
+            q1_loss_not_tf_function,
+            log_folder_name=f"Q1/{neuronChoice.layer}",
+            beforeImShow=fix_image_to_show
+        )
+
 
 def Q2():
-    neuronChoice = NeuronChoice(layer =  "dense3", index = 282)
+    neuronChoice = NeuronChoice(layer="dense3", index=282)
     image_rows_cols_shape = getImage(IMAGE_NAME).shape[1:3]
     q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=8)
-    train(neuronChoice, q2_loss, Q= "Q2", distributionKey = "zeros", numberOfIterations=2000)
+    train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey="zeros", numberOfIterations=2000)
+
 
 def q3(target_index=None,
        reg_lambda=1e-3,
@@ -139,7 +167,7 @@ def q3(target_index=None,
        clear_prev_logs=True):
     path = "Q3-I"
     if clear_prev_logs:
-        rmtree_path("./logs/"+path)
+        rmtree_path("./logs/" + path)
 
     image_name = "dog.png"
     model, I = getModel(image_name, "./alexnet_weights/", "./alexnet_weights/")
@@ -225,5 +253,6 @@ def main():
 
 
 if __name__ == "__main__":
-    q3(iterations=300, learning_rate=0.1,target_index=401)
-    Q2()
+    Q1()
+    # Q2()
+    # q3(iterations=300, learning_rate=0.1, target_index=401)
