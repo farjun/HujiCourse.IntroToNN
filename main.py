@@ -131,7 +131,6 @@ def Q1(clear_folder=True):
     base_path = "Q1"
     if clear_folder:
         rmtree_path("./logs/" + base_path)
-
     configs = [
         NeuronChoice(layer="conv1", filter=78, row=0, col=0),
         NeuronChoice(layer="conv2", filter=10, row=0, col=0),
@@ -141,9 +140,7 @@ def Q1(clear_folder=True):
         NeuronChoice(layer="dense2", index=10),
         NeuronChoice(layer="dense3", index=99)  # class 99 is "goose"
     ]
-
     for neuronChoice in configs:
-        print(neuronChoice.layer)
         train(
             neuronChoice,
             q1_loss_not_tf_function,
@@ -206,6 +203,45 @@ def q3(target_index=None,
                 once = True
 
 
+def Q4(image_name=IMAGE_NAME, block_size=10, step=10):
+    model, I = getModel(image_name, "./alexnet_weights/", "./alexnet_weights/")
+
+    c, _ = model(I)
+    top_ind = np.argmax(c)
+
+    block_size = block_size if block_size else 20
+    step = step if step else 5
+
+    probs = []
+
+    for x in tqdm(range(0, I.shape[1], step), desc="Q4"):
+        row_list = []
+        for y in range(0, I.shape[2], step):
+            I_cpy = I.copy()
+            I_cpy[0, x:x + block_size, y:y + block_size] = 255
+            c, _ = model(I_cpy)
+            row_list.append(c[0][top_ind].numpy())
+        probs.append(row_list)
+    a = np.array(probs)
+
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+    plt.tight_layout()
+    sns.heatmap(a, ax=ax1)
+
+    ax1.set_title(f'probability , block size {block_size} shift by {step}')
+    ax1.set_xlabel('x number of steps')
+    ax1.set_ylabel('y number of steps')
+    ax1.set_aspect("equal")
+
+    ax2.imshow(fix_image_to_show(I)[0])
+    ax2.set_title(classes[top_ind])
+    plt.savefig(f"Q4_{image_name}_heatmap.png")
+    plt.show()
+
+
 def rmtree_path(path):
     import shutil
     try:
@@ -253,6 +289,7 @@ def main():
 
 
 if __name__ == "__main__":
-    Q1()
+    # Q1()
+    Q4("dog.png")
     # Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
