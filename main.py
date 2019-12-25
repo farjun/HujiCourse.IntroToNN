@@ -113,9 +113,13 @@ def train(neuronChoice, loss_object, log_folder_name="Q1", distributionKey='norm
     train_step, train_loss = get_train_step(model, I_v, loss_object, optimizer, neuronChoice)
 
     if numberOfIterations is None:
-        iter_count = 5000 if neuronChoice.isConvLayer() else 50000
+        iter_count = 10000 if neuronChoice.isConvLayer() else 100000
     else:
         iter_count = numberOfIterations
+
+    with summaryWriter.as_default():
+        plot_i = beforeImShow(I_v) if beforeImShow else I_v
+        tf.summary.image(neuronChoice.layer, plot_i, step=0)
 
     for i in tqdm(range(1, iter_count + 1)):
         train_step()
@@ -123,7 +127,6 @@ def train(neuronChoice, loss_object, log_folder_name="Q1", distributionKey='norm
             plot_i = beforeImShow(I_v) if beforeImShow else I_v
             with summaryWriter.as_default():
                 tf.summary.image(neuronChoice.layer, plot_i, step=i)
-
     summaryWriter.close()
 
 
@@ -131,11 +134,18 @@ def Q1(clear_folder=True):
     base_path = "Q1"
     if clear_folder:
         rmtree_path("./logs/" + base_path)
+
+    # conv1, shape: (1, 56, 56, 96)
+    # conv2, shape: (1, 27, 27, 256)
+    # conv3, shape: (1, 13, 13, 384)
+    # conv4, shape: (1, 13, 13, 384)
+    # conv5, shape: (1, 13, 13, 256)
+
     configs = [
-        NeuronChoice(layer="conv1", filter=78, row=0, col=0),
-        NeuronChoice(layer="conv2", filter=10, row=0, col=0),
-        NeuronChoice(layer="conv3", filter=78, row=0, col=0),
-        NeuronChoice(layer="conv4", filter=78, row=0, col=0),
+        NeuronChoice(layer="conv1", filter=78, row=28, col=28),
+        NeuronChoice(layer="conv2", filter=78, row=14, col=14),
+        NeuronChoice(layer="conv3", filter=78, row=7, col=7),
+        NeuronChoice(layer="conv4", filter=78, row=7, col=7),
         NeuronChoice(layer="dense1", index=10),
         NeuronChoice(layer="dense2", index=10),
         NeuronChoice(layer="dense3", index=99)  # class 99 is "goose"
@@ -283,13 +293,17 @@ def get_adversarial_step(model: tf.keras.Model, image, noise, label, reg_lambda=
 def main():
     # Create an instance of the model
     model, I = getModel(IMAGE_NAME, "./alexnet_weights/", "./alexnet_weights/")
-    c, _ = model(I)
+    c, outputs = model(I)
+    for key in outputs:
+        print(f"key:{key} , shape: {outputs[key].shape}")
+
     top_ind = np.argmax(c)
     print("Top1: %d, %s" % (top_ind, classes[top_ind]))
 
 
 if __name__ == "__main__":
+    main()
     # Q1()
-    Q4("dog.png")
+    # Q4("dog.png")
     # Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
