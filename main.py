@@ -103,8 +103,13 @@ def spreadImPixels(I):
     return plot_i / tf.reduce_max(I)
 
 
-def train(neuronChoice, loss_object, log_folder_name="Q1", distributionKey='normal-1', numberOfIterations=None,
-          beforeImShow=None):
+def train(
+        neuronChoice,
+        loss_object,
+        log_folder_name="Q1",
+        distributionKey='normal-1',
+        numberOfIterations=None,
+        beforeImShow=None,report_every=100):
     model, I = getModel(IMAGE_NAME, "./alexnet_weights/", "./alexnet_weights/")
     I_v = tf.Variable(initial_value=getDistribution(distributionKey), trainable=True)
     I_v.initialized_value()
@@ -123,7 +128,7 @@ def train(neuronChoice, loss_object, log_folder_name="Q1", distributionKey='norm
 
     for i in tqdm(range(1, iter_count + 1)):
         train_step()
-        if i % 100 == 0:
+        if i % report_every == 0:
             plot_i = beforeImShow(I_v) if beforeImShow else I_v
             with summaryWriter.as_default():
                 tf.summary.image(neuronChoice.layer, plot_i, step=i)
@@ -142,13 +147,17 @@ def Q1(clear_folder=True):
     # conv5, shape: (1, 13, 13, 256)
 
     configs = [
-        NeuronChoice(layer="conv1", filter=78, row=28, col=28),
-        NeuronChoice(layer="conv2", filter=78, row=14, col=14),
-        NeuronChoice(layer="conv3", filter=78, row=7, col=7),
-        NeuronChoice(layer="conv4", filter=78, row=7, col=7),
-        NeuronChoice(layer="dense1", index=10),
-        NeuronChoice(layer="dense2", index=10),
-        NeuronChoice(layer="dense3", index=99)  # class 99 is "goose"
+        # NeuronChoice(layer="conv1", filter=0, row=28, col=28),
+        # NeuronChoice(layer="conv2", filter=78, row=14, col=14),
+        # NeuronChoice(layer="conv3", filter=78, row=7, col=7),
+        # NeuronChoice(layer="conv4", filter=78, row=7, col=7),
+        # NeuronChoice(layer="dense1", index=10),
+        # NeuronChoice(layer="dense2", index=10),
+        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
+        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
+        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
+        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
+        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
     ]
     for neuronChoice in configs:
         train(
@@ -195,12 +204,14 @@ def q3(target_index=None,
 
     step = get_adversarial_step(model, I, noise, target_index, reg_lambda, learning_rate)
     once = False
+    with image_writer.as_default():
+        tf.summary.image("Image", fix_image_to_show(I), step=0)
+
     for i in tqdm(range(1, iterations + 1), desc="Q3"):
         step()
         if i % report_evert == 0:
             c, _ = model(I + noise)
             with image_writer.as_default():
-                tf.summary.image("Image", fix_image_to_show(I), step=i)
                 tf.summary.image("Noise", fix_image_to_show(noise), step=i)
                 tf.summary.image("Noise And Image", fix_image_to_show(I + noise), step=i)
             with target_idx_probability_writer.as_default():
@@ -296,14 +307,15 @@ def main():
     c, outputs = model(I)
     for key in outputs:
         print(f"key:{key} , shape: {outputs[key].shape}")
-
     top_ind = np.argmax(c)
     print("Top1: %d, %s" % (top_ind, classes[top_ind]))
 
 
+
 if __name__ == "__main__":
     main()
-    # Q1()
+    # Q1(clear_folder=False)
     # Q4("dog.png")
     # Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
+    # q3(iterations=300, learning_rate=0.1, target_index=201)
