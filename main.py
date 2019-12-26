@@ -8,7 +8,7 @@ import tensorflow as tf
 from _datetime import datetime
 from enums import NeuronChoice
 import utils
-from tensorflow.keras.losses import KLDivergence
+from tensorflow.keras.losses import KLDivergence, MeanSquaredError
 
 IMAGE_NAME = 'poodle.png'
 
@@ -40,15 +40,16 @@ def getModel(img_name, img_dir, weight_dir) -> (AlexnetModel, np.ndarray):
     return model, I
 
 
-def getQ2Loss(imageShape, normalizition_lambda=1e-3, resizeBy=2):
+def getQ2Loss(imageShape, normalizition_lambda=1e-3, resizeBy=2, matrix_distance = MeanSquaredError()):
     numOfRows, numOfCols = utils.resizeShape(imageShape, resizeBy)
 
     def q2_loss(neuron, I):
-        fuorierMatrix = utils.computeOneOverW(numOfRows, numOfCols)
-        I = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
-        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(I, rgb=True)
-        kl = KLDivergence()
-        diffs = kl(fuorierMatrix, imFourierC0) + kl(fuorierMatrix, imFourierC1) + kl(fuorierMatrix, imFourierC2)
+        fuorierMatrix = utils.DFT_matrix(numOfRows)
+        Im = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
+
+        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(Im, rgb=True)
+
+        diffs = matrix_distance(fuorierMatrix, imFourierC0) + matrix_distance(fuorierMatrix, imFourierC1) + matrix_distance(fuorierMatrix, imFourierC2)
         loss = neuron - tf.cast(normalizition_lambda * diffs, dtype=tf.float32)
         return loss
 
@@ -169,9 +170,9 @@ def Q1(clear_folder=True):
 
 
 def Q2():
-    neuronChoice = NeuronChoice(layer="dense3", index=282)
+    neuronChoice = NeuronChoice(layer="dense3", index=312)
     image_rows_cols_shape = getImage(IMAGE_NAME).shape[1:3]
-    q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=8)
+    q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=4)
     train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey="zeros", numberOfIterations=2000)
 
 
@@ -313,9 +314,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
     # Q1(clear_folder=False)
     # Q4("dog.png")
-    # Q2()
+    Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
     # q3(iterations=300, learning_rate=0.1, target_index=201)

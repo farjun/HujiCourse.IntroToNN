@@ -29,3 +29,9 @@ class NeuronChoice(object):
 
   def isDenseLayer(self):
     return self.layer.startswith("dense")
+
+  def __str__(self):
+    if self.isConvLayer():
+      return "layer: {layer} filter: {filter}, at ({row},{col})".format(layer = self.layer,filter = self.filter, row = self.row, col = self.col)
+    elif self.isDenseLayer():
+      return "layer: {layer} at ({index})".format(layer = self.layer,index =self.index)
