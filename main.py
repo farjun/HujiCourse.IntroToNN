@@ -154,10 +154,7 @@ def Q1(clear_folder=True):
         # NeuronChoice(layer="dense1", index=10),
         # NeuronChoice(layer="dense2", index=10),
         NeuronChoice(layer="softmax", index=7),  # class 7 is "cock"
-        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
-        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
-        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
-        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
+        NeuronChoice(layer="dense3", index=244),  # class 99 is "tibetian mastif"
     ]
     for neuronChoice in configs:
         train(
