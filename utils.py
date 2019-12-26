@@ -8,7 +8,7 @@ def dftmtx(N):
 def resizeShape(curShape, resizeBy):
     return int(curShape[0]/resizeBy), int(curShape[1]/resizeBy)
 
-def DFT_matrix(N):
+def getDFT(N):
     i, j = np.meshgrid(np.arange(N), np.arange(N))
     omega = np.exp( - 2 * np.pi * 1J / N )
     return np.power( omega, i * j ) / np.sqrt(N)
@@ -18,14 +18,17 @@ def normellizeFourier(f):
         return f / tf.math.reduce_mean(f)
     return f
 
-def image_fourier(I):
-    I_r, I_b, I_g =  I[0,:,:,0],I[0,:,:,1],I[0,:,:,2]
-    imFourier1 = normellizeFourier(tf.math.abs(tf.signal.fft(tf.cast(I_r, dtype=tf.complex128))))
-    imFourier2 = normellizeFourier(tf.math.abs(tf.signal.fft(tf.cast(I_b, dtype=tf.complex128))))
-    imFourier3 = normellizeFourier(tf.math.abs(tf.signal.fft(tf.cast(I_g, dtype=tf.complex128))))
-    return imFourier1,imFourier2, imFourier3
-
 def image_fourier_with_grayscale(I):
     grayI =  tf.image.rgb_to_grayscale(I)
     imFourier1 = normellizeFourier(tf.math.abs(tf.signal.fft(tf.cast(grayI, dtype=tf.complex128))))
     return imFourier1, imFourier1, imFourier1
+
+def image_fourier(I, rgb = False):
+    imFourier = tf.math.abs(tf.signal.fft(tf.cast(I, dtype=tf.complex64)))
+    if tf.math.reduce_mean(imFourier) != 0:
+      imFourier = imFourier / tf.math.reduce_mean(imFourier)
+
+    if rgb:
+        return imFourier[0,:,:,0],imFourier[0,:,:,1],imFourier[0,:,:,2]
+
+    return imFourier

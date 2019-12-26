@@ -43,15 +43,21 @@ def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distanc
     numOfRows, numOfCols = utils.resizeShape(imageShape, resizeBy)
 
     def q2_loss(neuron, I):
-        fuorierMatrix = 1 / utils.DFT_matrix(numOfRows)
-        Im = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
+        natural_im_statistics = 1/utils.getDFT(numOfRows)
+        I = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
 
-        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(Im)
+        # rgb loss summed into one
+        # imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(I, rgb=True)
+        # diffs = matrix_distance(natural_im_statistics, imFourierC0) + \
+        #         matrix_distance(natural_im_statistics,imFourierC1) + \
+        #         matrix_distance(natural_im_statistics, imFourierC2)
 
-        diffs = matrix_distance(fuorierMatrix, imFourierC0) + matrix_distance(fuorierMatrix, imFourierC1) + matrix_distance(fuorierMatrix, imFourierC2)
+        # first convert to grayscale, then compute distance
+        imFourier = utils.image_fourier_with_grayscale(I)
+        diffs = matrix_distance(natural_im_statistics, imFourier)
+
         loss = neuron - tf.cast(normalizition_lambda * diffs, dtype=tf.float32)
         return loss
-
     return q2_loss
 
 
@@ -155,7 +161,7 @@ def Q1(clear_folder=True):
         # NeuronChoice(layer="dense2", index=10),
         NeuronChoice(layer="dense3", index=7),  #  "cock"
         NeuronChoice(layer="dense3", index=244),  #  "tibetian mastif"
-        NeuronChoice(layer="dense3", index=390),  # "tibetian mastif"
+        NeuronChoice(layer="dense3", index=390),  # "eel"
         NeuronChoice(layer="dense3", index=605),  # ipod"
     ]
     for neuronChoice in configs:
@@ -171,7 +177,7 @@ def Q2():
     neuronChoice = NeuronChoice(layer="dense3", index=1)
     image_rows_cols_shape = getImage(IMAGE_NAME).shape[1:3]
     q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=8)
-    train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey='zeros', numberOfIterations=5000)
+    train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey='zeros', numberOfIterations=1000)
 
 
 def q3(target_index=None,
@@ -314,7 +320,7 @@ def main():
 if __name__ == "__main__":
     # main()
     # Q1(clear_folder=False)
-    Q4("barbershop.jpg")
-    # Q2()
+    # Q4("dog.png",block_size = 5)
+    Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
     # q3(iterations=300, learning_rate=0.1, target_index=201)
