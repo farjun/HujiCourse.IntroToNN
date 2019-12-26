@@ -47,14 +47,15 @@ def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distanc
         I = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
 
         # rgb loss summed into one
-        # imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(I, rgb=True)
-        # diffs = matrix_distance(natural_im_statistics, imFourierC0) + \
-        #         matrix_distance(natural_im_statistics,imFourierC1) + \
-        #         matrix_distance(natural_im_statistics, imFourierC2)
+
+        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(I, rgb=True)
+        diffs = matrix_distance(natural_im_statistics, imFourierC0) + \
+                matrix_distance(natural_im_statistics,imFourierC1) + \
+                matrix_distance(natural_im_statistics, imFourierC2)
 
         # first convert to grayscale, then compute distance
-        imFourier = utils.image_fourier_with_grayscale(I)
-        diffs = matrix_distance(natural_im_statistics, imFourier)
+        # imFourier = utils.image_fourier_with_grayscale(I)
+        # diffs = matrix_distance(natural_im_statistics, imFourier)
 
         loss = neuron - tf.cast(normalizition_lambda * diffs, dtype=tf.float32)
         return loss
