@@ -178,7 +178,8 @@ def Q2():
     neuronChoice = NeuronChoice(layer="dense3", index=1)
     image_rows_cols_shape = getImage(IMAGE_NAME).shape[1:3]
     q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=8)
-    train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey='zeros', numberOfIterations=1000)
+    train(neuronChoice, q2_loss, log_folder_name="Q2-zeros", distributionKey='zeros', numberOfIterations=100000)
+    train(neuronChoice, q2_loss, log_folder_name="Q2-normal1", distributionKey='normal-1', numberOfIterations=100000)
 
 
 def q3(target_index=None,
