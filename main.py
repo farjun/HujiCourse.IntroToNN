@@ -46,7 +46,7 @@ def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distanc
         fuorierMatrix = 1 / utils.DFT_matrix(numOfRows)
         Im = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
 
-        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier_with_grayscale(Im)
+        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(Im)
 
         diffs = matrix_distance(fuorierMatrix, imFourierC0) + matrix_distance(fuorierMatrix, imFourierC1) + matrix_distance(fuorierMatrix, imFourierC2)
         loss = neuron - tf.cast(normalizition_lambda * diffs, dtype=tf.float32)
@@ -153,7 +153,7 @@ def Q1(clear_folder=True):
         # NeuronChoice(layer="conv4", filter=78, row=7, col=7),
         # NeuronChoice(layer="dense1", index=10),
         # NeuronChoice(layer="dense2", index=10),
-        NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
+        NeuronChoice(layer="softmax", index=7),  # class 7 is "cock"
         NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
         NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
         NeuronChoice(layer="dense3", index=99),  # class 99 is "goose"
@@ -172,7 +172,7 @@ def Q2():
     neuronChoice = NeuronChoice(layer="dense3", index=1)
     image_rows_cols_shape = getImage(IMAGE_NAME).shape[1:3]
     q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=8)
-    train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey='normal-1', numberOfIterations=5000)
+    train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey='zeros', numberOfIterations=5000)
 
 
 def q3(target_index=None,
@@ -314,8 +314,8 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    # Q1(clear_folder=False)
-    # Q4("dog.png")
-    Q2()
+    Q1(clear_folder=False)
+    # Q4("cock.jpg")
+    # Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
     # q3(iterations=300, learning_rate=0.1, target_index=201)
