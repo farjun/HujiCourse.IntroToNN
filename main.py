@@ -153,8 +153,10 @@ def Q1(clear_folder=True):
         # NeuronChoice(layer="conv4", filter=78, row=7, col=7),
         # NeuronChoice(layer="dense1", index=10),
         # NeuronChoice(layer="dense2", index=10),
-        NeuronChoice(layer="softmax", index=7),  # class 7 is "cock"
-        NeuronChoice(layer="dense3", index=244),  # class 99 is "tibetian mastif"
+        NeuronChoice(layer="dense3", index=7),  #  "cock"
+        NeuronChoice(layer="dense3", index=244),  #  "tibetian mastif"
+        NeuronChoice(layer="dense3", index=390),  # "tibetian mastif"
+        NeuronChoice(layer="dense3", index=605),  # ipod"
     ]
     for neuronChoice in configs:
         train(
@@ -311,8 +313,8 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    Q1(clear_folder=False)
-    # Q4("cock.jpg")
+    # Q1(clear_folder=False)
+    Q4("barbershop.jpg")
     # Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
     # q3(iterations=300, learning_rate=0.1, target_index=201)
