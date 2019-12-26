@@ -28,7 +28,7 @@ class NeuronChoice(object):
     return self.layer.startswith("conv")
 
   def isDenseLayer(self):
-    return self.layer.startswith("dense")
+    return self.layer.startswith("dense") or self.layer.startswith("softmax")
 
   def __str__(self):
     if self.isConvLayer():

@@ -12,7 +12,6 @@ from tensorflow.keras.losses import KLDivergence, MeanSquaredError
 
 IMAGE_NAME = 'poodle.png'
 
-
 def getSummaryWriter(modelName):
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     base_path = f'logs/{modelName}/' + current_time
@@ -40,14 +39,14 @@ def getModel(img_name, img_dir, weight_dir) -> (AlexnetModel, np.ndarray):
     return model, I
 
 
-def getQ2Loss(imageShape, normalizition_lambda=1e-3, resizeBy=2, matrix_distance = MeanSquaredError()):
+def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distance = MeanSquaredError()):
     numOfRows, numOfCols = utils.resizeShape(imageShape, resizeBy)
 
     def q2_loss(neuron, I):
-        fuorierMatrix = utils.DFT_matrix(numOfRows)
+        fuorierMatrix = 1 / utils.DFT_matrix(numOfRows)
         Im = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
 
-        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(Im, rgb=True)
+        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier_with_grayscale(Im)
 
         diffs = matrix_distance(fuorierMatrix, imFourierC0) + matrix_distance(fuorierMatrix, imFourierC1) + matrix_distance(fuorierMatrix, imFourierC2)
         loss = neuron - tf.cast(normalizition_lambda * diffs, dtype=tf.float32)
@@ -170,10 +169,10 @@ def Q1(clear_folder=True):
 
 
 def Q2():
-    neuronChoice = NeuronChoice(layer="dense3", index=312)
+    neuronChoice = NeuronChoice(layer="dense3", index=1)
     image_rows_cols_shape = getImage(IMAGE_NAME).shape[1:3]
-    q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=4)
-    train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey="zeros", numberOfIterations=2000)
+    q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=8)
+    train(neuronChoice, q2_loss, log_folder_name="Q2", distributionKey='normal-1', numberOfIterations=5000)
 
 
 def q3(target_index=None,
