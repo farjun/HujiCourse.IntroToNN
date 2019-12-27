@@ -197,7 +197,7 @@ def Q2():
     neuronChoice = NeuronChoice(layer="dense3", index=1)
     image_rows_cols_shape = getImage(IMAGE_NAME).shape[1:3]
     q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=8)
-    train(neuronChoice, q2_loss, log_folder_name="Q2-zeros", distributionKey='zeros', numberOfIterations=3000)
+    train(neuronChoice, q2_loss, log_folder_name="Q2-zeros", distributionKey='zeros', numberOfIterations=3000, beforeImShow=fix_image_to_show)
 
 
 def q3(target_index=None,
@@ -297,6 +297,9 @@ def rmtree_path(path):
 
 
 def fix_image_to_show(I):
+    """
+    :return: the image after switching  rgb_to_bgr and normalize
+    """
     return normalize(rgb_to_bgr(I))
 
 
@@ -327,7 +330,7 @@ def get_adversarial_step(model: tf.keras.Model, image, noise, label, reg_lambda=
 
 
 def main():
-    # Create an instance of the model
+    # given code to test the model is loaded properly and working
     model, I = getModel(IMAGE_NAME, "./alexnet_weights/", "./alexnet_weights/")
     c, outputs = model(I)
     for key in outputs:
@@ -340,7 +343,7 @@ def main():
 if __name__ == "__main__":
     # main()
     # Q1(clear_folder=False)
-    Q4("dog.png",block_size = 20)
     # Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
     # q3(iterations=300, learning_rate=0.1, target_index=201)
+    Q4("dog.png",block_size = 20)
