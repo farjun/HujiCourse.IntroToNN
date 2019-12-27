@@ -42,7 +42,7 @@ def getModel(img_name, img_dir, weight_dir) -> (AlexnetModel, np.ndarray):
     return model, I
 
 
-def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distance = MeanSquaredError()):
+def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distance = MeanSquaredError() , useGreyScale = False):
     """
     returns the loss of Q2
     :param imageShape: the current image shape
@@ -56,16 +56,16 @@ def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distanc
         natural_im_statistics = 1/utils.getDFT(numOfRows)
         I = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
 
-        # rgb loss summed into one
-        imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(I, rgb=True)
-        diffs = matrix_distance(natural_im_statistics, imFourierC0) + \
-                matrix_distance(natural_im_statistics,imFourierC1) + \
-                matrix_distance(natural_im_statistics, imFourierC2)
-
-        # first convert to grayscale, then compute distance
-
-        # imFourier = utils.image_fourier_with_grayscale(I)
-        # diffs = matrix_distance(natural_im_statistics, imFourier)
+        if useGreyScale:
+            # first convert to grayscale, then compute distance
+            imFourier = utils.image_fourier_with_grayscale(I)
+            diffs = matrix_distance(natural_im_statistics, imFourier)
+        else:
+            # rgb loss summed into one
+            imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(I, rgb=True)
+            diffs = matrix_distance(natural_im_statistics, imFourierC0) + \
+                    matrix_distance(natural_im_statistics,imFourierC1) + \
+                    matrix_distance(natural_im_statistics, imFourierC2)
 
         loss = neuron - tf.cast(normalizition_lambda * diffs, dtype=tf.float32)
         return loss
