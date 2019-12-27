@@ -32,6 +32,9 @@ def getImage(imageName, directory="./alexnet_weights/", normelize=None):
 
 
 def getModel(img_name, img_dir, weight_dir) -> (AlexnetModel, np.ndarray):
+    """
+    returns the model, calles on an Image I for initial build of model.
+    """
     model = AlexnetModel()
     I = getImage(img_name, img_dir)
     model(I)
@@ -40,6 +43,13 @@ def getModel(img_name, img_dir, weight_dir) -> (AlexnetModel, np.ndarray):
 
 
 def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distance = MeanSquaredError()):
+    """
+    returns the loss of Q2
+    :param imageShape: the current image shape
+    :param resizeBy: the resize factor
+    :param matrix_distance: the loss we define on the distance bewteen 2 matrixes
+    (in our case it will be the fourer image and 1 over W matrix
+    """
     numOfRows, numOfCols = utils.resizeShape(imageShape, resizeBy)
 
     def q2_loss(neuron, I):
@@ -47,13 +57,13 @@ def getQ2Loss(imageShape, normalizition_lambda=0.001, resizeBy=2, matrix_distanc
         I = tf.image.resize(I, utils.resizeShape(imageShape, resizeBy))
 
         # rgb loss summed into one
-
         imFourierC0, imFourierC1, imFourierC2 = utils.image_fourier(I, rgb=True)
         diffs = matrix_distance(natural_im_statistics, imFourierC0) + \
                 matrix_distance(natural_im_statistics,imFourierC1) + \
                 matrix_distance(natural_im_statistics, imFourierC2)
 
         # first convert to grayscale, then compute distance
+
         # imFourier = utils.image_fourier_with_grayscale(I)
         # diffs = matrix_distance(natural_im_statistics, imFourier)
 
@@ -89,7 +99,7 @@ def get_train_step(model: AlexnetModel, I, loss_object, optimizer, neuronChoice:
             wanted_layer = outputs[neuronChoice.layer]
             layer_shape = wanted_layer.shape
 
-            if len(layer_shape) == 2:  # affine layer:
+            if len(layer_shape) == 2:  # dense layer:
                 neuron = wanted_layer[0][neuronChoice.index]
                 Sc = loss_object(neuron, I)
 
@@ -138,6 +148,15 @@ def train(
         if i % report_every == 0:
             plot_i = beforeImShow(I_v) if beforeImShow else I_v
             with summaryWriter.as_default():
+                if neuronChoice.isDenseLayer():
+                    tf.summary.image(neuronChoice.layer, plot_i, step=i,
+                                     description="{className}: iteration {i}".format(
+                                         className=classes[neuronChoice.index], i=i))
+
+                if neuronChoice.isDenseLayer():
+                    tf.summary.image(neuronChoice.layer, plot_i, step=i, description= "{className}: iteration {i}".format(
+                                         className=str(neuronChoice), i=i))
+
                 tf.summary.image(neuronChoice.layer, plot_i, step=i)
     summaryWriter.close()
 
@@ -178,8 +197,7 @@ def Q2():
     neuronChoice = NeuronChoice(layer="dense3", index=1)
     image_rows_cols_shape = getImage(IMAGE_NAME).shape[1:3]
     q2_loss = getQ2Loss(image_rows_cols_shape, resizeBy=8)
-    train(neuronChoice, q2_loss, log_folder_name="Q2-zeros", distributionKey='zeros', numberOfIterations=100000)
-    train(neuronChoice, q2_loss, log_folder_name="Q2-normal1", distributionKey='normal-1', numberOfIterations=100000)
+    train(neuronChoice, q2_loss, log_folder_name="Q2-zeros", distributionKey='zeros', numberOfIterations=3000)
 
 
 def q3(target_index=None,
@@ -231,7 +249,7 @@ def q3(target_index=None,
                 once = True
 
 
-def Q4(image_name=IMAGE_NAME, block_size=10, step=10):
+def Q4(image_name=IMAGE_NAME, block_size=10, step=1):
     model, I = getModel(image_name, "./alexnet_weights/", "./alexnet_weights/")
 
     c, _ = model(I)
@@ -322,7 +340,7 @@ def main():
 if __name__ == "__main__":
     # main()
     # Q1(clear_folder=False)
-    # Q4("dog.png",block_size = 5)
-    Q2()
+    Q4("dog.png",block_size = 20)
+    # Q2()
     # q3(iterations=300, learning_rate=0.1, target_index=401)
     # q3(iterations=300, learning_rate=0.1, target_index=201)
