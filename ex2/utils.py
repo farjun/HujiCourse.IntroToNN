@@ -11,7 +11,8 @@ def resizeShape(curShape, resizeBy):
 def getDFT(N):
     i, j = np.meshgrid(np.arange(N), np.arange(N))
     omega = np.exp( - 2 * np.pi * 1J / N )
-    return np.power( omega, i * j ) / np.sqrt(N)
+    res = np.power(omega, i * j) / np.sqrt(N)
+    return res / np.mean(res)
 
 def normellizeFourier(f):
     if tf.math.reduce_mean(f) != 0:
@@ -24,9 +25,11 @@ def image_fourier_with_grayscale(I):
     return imFourier1, imFourier1, imFourier1
 
 def image_fourier(I, rgb = False):
+    """
+    :return: normelized image fourier for 3 or single channel
+    """
     imFourier = tf.math.abs(tf.signal.fft(tf.cast(I, dtype=tf.complex64)))
-    if tf.math.reduce_mean(imFourier) != 0:
-      imFourier = imFourier / tf.math.reduce_mean(imFourier)
+    imFourier = normellizeFourier(imFourier)
 
     if rgb:
         return imFourier[0,:,:,0],imFourier[0,:,:,1],imFourier[0,:,:,2]

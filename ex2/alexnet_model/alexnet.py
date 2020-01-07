@@ -10,9 +10,9 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import numpy as np
 import tensorflow as tf
 
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, Activation, MaxPooling2D, Dropout
-from tensorflow.keras import Model, Input
-from enums import AlexnetLayers
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, Activation, MaxPooling2D
+from tensorflow.keras import Model
+from ex2.enums import AlexnetLayers
 
 mnist = tf.keras.datasets.mnist
 

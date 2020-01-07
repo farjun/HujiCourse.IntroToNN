@@ -8,11 +8,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import numpy as np
 from PIL import Image
-from alexnet_weights.classes import classes
+from ex2.alexnet_weights.classes import classes
 
 import tensorflow as tf
 
-from tensorflow.keras.layers import Dense, Flatten, Conv2D, Activation, MaxPooling2D, Dropout
+from tensorflow.keras.layers import Dense, Flatten, Conv2D, Activation, MaxPooling2D
 from tensorflow.keras import Model
 
 mnist = tf.keras.datasets.mnist
