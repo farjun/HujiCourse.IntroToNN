@@ -75,7 +75,7 @@ def trainEncoder(generator, train_ds):
         train_accuracy.reset_states()
 
 
-    generator.saveWeights()
+    generator.save_weights("./weights/v1")
     train_summary_writer.close()
     test_summary_writer.close()
 
