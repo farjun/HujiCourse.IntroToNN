@@ -55,14 +55,11 @@ def get_train_step(generator: tf.keras.Model, loss_object):
 
     return train_step, train_loss, train_accuracy
 
-def trainEncoder(generator, train_ds):
+def trainEncoder(generator, train_ds,epochs = 40):
     loss_object = tf.keras.losses.MeanSquaredError()
     train_step, train_loss, train_accuracy = get_train_step(generator, loss_object)
     train_summary_writer, test_summary_writer = getSummaryWriters(generator.name)
-
-    epochs = 40
     train_counter = 0
-
     for epoch in tqdm(range(epochs)):
         for images, labels in train_ds:
             train_step(images, labels)
@@ -85,6 +82,7 @@ def trainEncoder(generator, train_ds):
 def Q1():
     generator = exModels.CNNGenerator()
     test_ds, train_ds = get_data_as_tensorslice()
+    exModels.printable_model(generator).summary()
     trainEncoder(generator, train_ds)
 
 def main():
