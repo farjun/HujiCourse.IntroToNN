@@ -72,13 +72,18 @@ def trainEncoder(generator, train_ds, epochs=40, save_img_every=100):
                     image_idx = 0
                     tf.summary.image(
                         "generator_img",
-                        generator(images[image_idx]),
-                        train_counter,
-                        description=f"generator_img for label {labels[image_idx]}")
+                        generator([images[image_idx]]),
+                        train_counter
+                    )
+                    tf.summary.image(
+                        "src_img",
+                        [images[image_idx]],
+                        train_counter
+                    )
 
-        with train_summary_writer.as_default():
-            tf.summary.scalar("loss", train_loss.result(), step=train_counter)
-            tf.summary.scalar("accuracy", train_accuracy.result() * 100, step=train_counter)
+            with train_summary_writer.as_default():
+                tf.summary.scalar("loss", train_loss.result(), step=train_counter)
+                tf.summary.scalar("accuracy", train_accuracy.result() * 100, step=train_counter)
 
         # Reset the metrics for the next epoch
         train_loss.reset_states()
@@ -89,15 +94,15 @@ def trainEncoder(generator, train_ds, epochs=40, save_img_every=100):
     test_summary_writer.close()
 
 
-def Q1(epochs=40):
+def Q1(epochs=10, save_img_every=100):
     generator = exModels.CNNGenerator()
     test_ds, train_ds = get_data_as_tensorslice()
     exModels.printable_model(generator).summary()
-    trainEncoder(generator, train_ds, epochs)
+    trainEncoder(generator, train_ds, epochs, save_img_every)
 
 
 def main():
-    Q1()
+    Q1(epochs=1,save_img_every=100)
 
 
 if __name__ == '__main__':
