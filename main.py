@@ -79,11 +79,11 @@ def trainEncoder(generator, train_ds,epochs = 40):
     test_summary_writer.close()
 
 
-def Q1():
+def Q1(epochs = 40):
     generator = exModels.CNNGenerator()
     test_ds, train_ds = get_data_as_tensorslice()
     exModels.printable_model(generator).summary()
-    trainEncoder(generator, train_ds)
+    trainEncoder(generator, train_ds,epochs)
 
 def main():
     Q1()
