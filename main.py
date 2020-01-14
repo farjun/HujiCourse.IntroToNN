@@ -57,11 +57,10 @@ def trainEncoder(generator, train_ds):
     train_step, train_loss, train_accuracy = get_train_step(generator, loss_object)
     train_summary_writer, test_summary_writer = getSummaryWriters(generator.name)
 
-    total_number_of_iteration = 20000
-    report_every = 500
+    epochs = 40
     train_counter = 0
 
-    for epoch in tqdm(range(report_every, total_number_of_iteration + report_every, report_every)):
+    for epoch in tqdm(range(epochs)):
         for images, labels in train_ds:
             train_step(images, labels)
             train_counter += 1
