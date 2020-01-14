@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from datetime import datetime
 import models as exModels
+from tqdm.auto import tqdm
 
 def get_data(normalize=True):
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -60,12 +61,10 @@ def trainEncoder(generator, train_ds):
     report_every = 500
     train_counter = 0
 
-    for epoch in range(report_every, total_number_of_iteration + report_every, report_every):  # TODO it's not epoch!
+    for epoch in tqdm(range(report_every, total_number_of_iteration + report_every, report_every)):
         for images, labels in train_ds:
             train_step(images, labels)
             train_counter += 1
-            if train_counter % report_every == 0:
-                break
 
         with train_summary_writer.as_default():
             tf.summary.scalar("loss", train_loss.result(), step=train_counter)
@@ -75,6 +74,8 @@ def trainEncoder(generator, train_ds):
         train_loss.reset_states()
         train_accuracy.reset_states()
 
+
+    generator.saveWeights()
     train_summary_writer.close()
     test_summary_writer.close()
 

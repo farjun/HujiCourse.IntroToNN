@@ -32,3 +32,8 @@ class CNNGenerator(Model):
 
         return x
 
+    def saveWeights(self, filename = "v1"):
+        self.save_weights("./weights/" + filename)
+
+    def loadWeights(self, filename = "v1"):
+        self.load_weights("./weights/" + filename)
