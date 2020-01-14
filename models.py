@@ -1,6 +1,6 @@
 from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Flatten
-
+from matplotlib import pyplot as plt
 
 def printable_model(model: Model, input_shape=(28, 28, 1)):
     x = Input(shape=input_shape)
@@ -17,7 +17,7 @@ class CNNGenerator(Model):
         self.d2 = Dense(10, activation='relu')
         self.d4 = Dense(512, activation='sigmoid')
         self.conv3 = Conv2DTranspose(64, (3, 3), strides=(2,2), activation='relu')
-        self.conv4 = Conv2DTranspose(32, (4, 4), strides=(2,2), activation='relu')
+        self.conv4 = Conv2DTranspose(1, (4, 4), strides=(2,2), activation='relu')
 
 
     def call(self, x, **kwargs):
