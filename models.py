@@ -67,3 +67,10 @@ class Discriminator(CNNGenerator):
     def call(self, x, **kwargs):
         x = super().encode(x)
         return self.predict(x)
+
+class Generator(CNNGenerator):
+    def __init__(self):
+        super(G, self).__init__()
+
+    def call(self, x, **kwargs):
+        return super().decode(x)
