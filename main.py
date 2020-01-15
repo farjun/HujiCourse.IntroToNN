@@ -1,10 +1,13 @@
+from typing import Dict
+
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
 import models as exModels
 from tqdm.auto import tqdm
 
-WEIGHTS_PATH = "./weights/v1"
+WEIGHTS_PATH = "./weights/AE/v1"
+DenoisingAE_WEIGHTS_PATH = "./weights/DenoisingAE/v1"
 
 
 def get_data(normalize=True):
@@ -18,9 +21,8 @@ def get_data(normalize=True):
     return (x_train, y_train), (x_test, y_test)
 
 
-def get_data_as_tensorslice():
-    (x_train, y_train), (x_test, y_test) = get_data()
-
+def get_data_as_tensorslice(normalize=True):
+    (x_train, y_train), (x_test, y_test) = get_data(normalize)
     train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(32)
     test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(32)
     return test_ds, train_ds
@@ -60,7 +62,7 @@ def get_train_step(generator: tf.keras.Model, loss_object):
     return train_step, train_loss, train_accuracy
 
 
-def trainEncoder(generator, train_ds, epochs=40, save_img_every=100):
+def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=WEIGHTS_PATH):
     loss_object = tf.keras.losses.MeanSquaredError()
     train_step, train_loss, train_accuracy = get_train_step(generator, loss_object)
     train_summary_writer, test_summary_writer = getSummaryWriters(generator.name)
@@ -71,17 +73,20 @@ def trainEncoder(generator, train_ds, epochs=40, save_img_every=100):
             train_counter += 1
             if train_counter % save_img_every == 0:
                 with train_summary_writer.as_default():
-                    image_idx = 0
-                    image_input = tf.Variable([images[image_idx]], dtype=tf.float32)
+                    image_input = images
+                    common = {
+                        "step": train_counter,
+                        "max_outputs": 3
+                    }
                     tf.summary.image(
                         "generator_img",
                         generator(image_input),
-                        train_counter
+                        **common
                     )
                     tf.summary.image(
                         "src_img",
                         image_input,
-                        train_counter
+                        **common
                     )
 
             with train_summary_writer.as_default():
@@ -92,7 +97,7 @@ def trainEncoder(generator, train_ds, epochs=40, save_img_every=100):
         train_loss.reset_states()
         train_accuracy.reset_states()
 
-    generator.save_weights(WEIGHTS_PATH)
+    generator.save_weights(weights_path)
     train_summary_writer.close()
     test_summary_writer.close()
 
@@ -101,13 +106,14 @@ def Q1(epochs=10, save_img_every=100):
     generator = exModels.CNNGenerator()
     test_ds, train_ds = get_data_as_tensorslice()
     exModels.printable_model(generator).summary()
-    trainEncoder(generator, train_ds, epochs, save_img_every)
+    train_AE(generator, train_ds, epochs, save_img_every)
+    visual_latent_space(generator, test_ds)
 
 
-def visual_latent_space_from_save():
+def visual_latent_space_from_save(weights_path=WEIGHTS_PATH):
     test_ds, train_ds = get_data_as_tensorslice()
     generator = exModels.CNNGenerator()
-    generator.load_weights(WEIGHTS_PATH)
+    generator.load_weights(weights_path)
     visual_latent_space(generator, test_ds)
 
 
@@ -115,7 +121,6 @@ def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
     from sklearn.manifold import TSNE
     from sklearn.decomposition import PCA, LatentDirichletAllocation
     import matplotlib.pyplot as plt
-
     tsne = TSNE(2)
     pca = PCA(2)
     lda = LatentDirichletAllocation(2)
@@ -136,9 +141,17 @@ def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
     plt.show()
 
 
+def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
+    generator = exModels.DenoisingAE(noise_attributes)
+    test_ds, train_ds = get_data_as_tensorslice()
+    exModels.printable_model(generator).summary()
+    train_AE(generator, train_ds, epochs, save_img_every, weights_path=DenoisingAE_WEIGHTS_PATH)
+    visual_latent_space(generator, test_ds)
+
+
 def main():
     # Q1(epochs=10, save_img_every=100)
-    visual_latent_space_from_save()
+    Q2(epochs=10, save_img_every=100)
 
 
 if __name__ == '__main__':

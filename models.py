@@ -1,3 +1,5 @@
+from typing import Dict
+
 from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Flatten, Reshape
 from matplotlib import pyplot as plt
@@ -42,3 +44,16 @@ class CNNGenerator(Model):
 
     def call(self, x, **kwargs):
         return self.decode(self.encode(x, **kwargs), **kwargs)
+
+
+import tensorflow as tf
+
+
+class DenoisingAE(CNNGenerator):
+    def __init__(self, noise_attributes: Dict):
+        super(DenoisingAE, self).__init__()
+        self.noise_attributes = noise_attributes if noise_attributes else {}
+
+    def call(self, x, **kwargs):
+        x = x + tf.random.normal(tf.shape(x), **self.noise_attributes)
+        return super().call(x)
