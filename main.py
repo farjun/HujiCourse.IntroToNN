@@ -262,7 +262,7 @@ def Q3(epochs=50, save_img_every=100, saveFig = True):
     test_ds, train_ds = get_data_as_tensorslice()
     exModels.printable_model(generator).summary()
     exModels.printable_model(discriminator).summary()
-    train_GAN(generator,discriminator , train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH, disc_weights_path=GanDiscriminator_WEIGHTS_PATH)
+    train_GAN(generator,discriminator , train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH, disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig = saveFig)
 
 def main():
     # visual_latent_space_from_save()
