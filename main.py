@@ -157,10 +157,10 @@ def generate_and_save_images(generator, epoch, seed, saveFig = True):
   # This is so all layers run in inference mode (batchnorm).
   predictions = generator(seed, training=False)
 
-  fig = plt.figure(figsize=(4,4))
+  fig = plt.figure(figsize=(4, 4))
 
-  for i in range(predictions.shape[0]):
-      plt.subplot(BATCH_SIZE/4, 4, i+1)
+  for i in range(0,int(BATCH_SIZE/2)):
+      plt.subplot(4, 4, i+1)
       plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
       plt.axis('off')
   if saveFig:
