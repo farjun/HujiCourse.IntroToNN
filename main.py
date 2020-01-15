@@ -70,14 +70,15 @@ def trainEncoder(generator, train_ds, epochs=40, save_img_every=100):
             if train_counter % save_img_every == 0:
                 with train_summary_writer.as_default():
                     image_idx = 0
+                    image_input = tf.Variable([images[image_idx]])
                     tf.summary.image(
                         "generator_img",
-                        generator([images[image_idx]]),
+                        generator(image_input),
                         train_counter
                     )
                     tf.summary.image(
                         "src_img",
-                        [images[image_idx]],
+                        image_input,
                         train_counter
                     )
 
@@ -105,10 +106,16 @@ def Q1(epochs=10, save_img_every=100):
 
 def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
     pass
+
+
+    # from sklearn.manifold import TSNE
+    # from sklearn.decomposition import PCA,LatentDirichletAllocation
+    # tsne = TSNE(2)
+    # pca = PCA(2)
+    # lda = LatentDirichletAllocation(2)
     # for images,labels in test_ds:
     #     latent = generator.encode(images)
     #     print(latent.shape)
-
 
 
 def main():
