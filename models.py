@@ -57,3 +57,13 @@ class DenoisingAE(CNNGenerator):
     def call(self, x, **kwargs):
         x = x + tf.random.normal(tf.shape(x), **self.noise_attributes)
         return super().call(x)
+
+
+class Discriminator(CNNGenerator):
+    def __init__(self):
+        super(Discriminator, self).__init__()
+        self.predict = Dense(1,activation='sigmoid')
+
+    def call(self, x, **kwargs):
+        x = super().encode(x)
+        return self.predict(x)
