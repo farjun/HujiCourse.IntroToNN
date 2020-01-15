@@ -100,9 +100,19 @@ def Q1(epochs=10, save_img_every=100):
     exModels.printable_model(generator).summary()
     trainEncoder(generator, train_ds, epochs, save_img_every)
 
+    # visual_latent_space(generator, test_ds)
+
+
+def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
+    pass
+    # for images,labels in test_ds:
+    #     latent = generator.encode(images)
+    #     print(latent.shape)
+
+
 
 def main():
-    Q1(epochs=1,save_img_every=100)
+    Q1(epochs=10, save_img_every=100)
 
 
 if __name__ == '__main__':
