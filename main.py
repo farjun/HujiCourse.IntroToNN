@@ -6,7 +6,8 @@ from datetime import datetime
 import models as exModels
 from tqdm.auto import tqdm
 
-WEIGHTS_PATH = "./weights/AE/v1"
+# WEIGHTS_PATH = "./weights/AE/v1"
+WEIGHTS_PATH = "./weights/v1"
 DenoisingAE_WEIGHTS_PATH = "./weights/DenoisingAE/v1"
 
 
@@ -124,19 +125,31 @@ def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
     tsne = TSNE(2)
     pca = PCA(2)
     lda = LatentDirichletAllocation(2)
-    reducer = lda
-    max_iters = 50
+    reducer = tsne
+    max_iters = 100
     iter_count = 0
+    Xs = None
+    Y = None
     for images, labels in test_ds:
         if iter_count % max_iters == max_iters - 1:
             break
         else:
             iter_count += 1
         imgs = generator.encode(images)
-        vis_x, vis_y = reducer.fit_transform(imgs).T
-        for i in range(10):
-            where = labels == i
-            plt.plot(vis_x[where], vis_y[where], ".", label=str(i))
+        imgs_numpy = imgs.numpy()
+        labels_numpy = labels.numpy()
+        if Xs is None and Y is None:
+            Xs = imgs_numpy
+            Y = labels_numpy
+        else:
+            Xs = np.vstack((Xs, imgs_numpy))
+            Y = np.concatenate((Y, labels_numpy))
+    vis_x, vis_y = reducer.fit_transform(Xs, Y).T
+    for i in range(10):
+        where = Y == i
+        x_i = vis_x[where]
+        y_i = vis_y[where]
+        plt.plot(x_i, y_i, ".", label=str(i), markersize=14)
     plt.legend(np.arange(0, 10))
     plt.show()
 
@@ -150,8 +163,9 @@ def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
 
 
 def main():
+    visual_latent_space_from_save()
     # Q1(epochs=10, save_img_every=100)
-    Q2(epochs=10, save_img_every=100)
+    # Q2(epochs=10, save_img_every=100)
 
 
 if __name__ == '__main__':
