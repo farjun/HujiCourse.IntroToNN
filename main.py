@@ -70,7 +70,7 @@ def trainEncoder(generator, train_ds, epochs=40, save_img_every=100):
             if train_counter % save_img_every == 0:
                 with train_summary_writer.as_default():
                     image_idx = 0
-                    image_input = tf.Variable([images[image_idx]], dtype=tf.float64)
+                    image_input = tf.Variable([images[image_idx]], dtype=tf.float32)
                     tf.summary.image(
                         "generator_img",
                         generator(image_input),
