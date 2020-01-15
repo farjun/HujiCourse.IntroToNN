@@ -2,7 +2,6 @@ from typing import Dict
 
 from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Flatten, Reshape
-from matplotlib import pyplot as plt
 
 
 def printable_model(model: Model, input_shape=(28, 28, 1)):

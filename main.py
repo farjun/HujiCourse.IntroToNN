@@ -6,6 +6,7 @@ from datetime import datetime
 import models as exModels
 from tqdm.auto import tqdm
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+from matplotlib import pyplot as plt
 
 # WEIGHTS_PATH = "./weights/AE/v1"
 BATCH_SIZE = 32
@@ -128,10 +129,10 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
     def train_step(images, labels):
         noise = tf.random.normal((BATCH_SIZE, 1))
         with tf.GradientTape() as gen_tape,tf.GradientTape() as disc_tape:
-            fake_im = generator(noise)
+            fake_im = generator(noise, training=True)
 
-            real_im_output = discriminator(images)
-            fake_im_output = discriminator(fake_im)
+            real_im_output = discriminator(images, training=True)
+            fake_im_output = discriminator(fake_im, training=True)
 
             generator_loss = generator_loss_object(fake_im_output)
             discriminator_loss = discriminator_loss_object(real_im_output, fake_im_output)
@@ -147,26 +148,40 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
 
         generator_train_accuracy(real_im_output, tf.zeros_like(real_im_output))
         discriminator_train_accuracy(real_im_output, tf.ones_like(real_im_output))
+        return noise
 
     return train_step, generator_train_loss, discriminator_train_loss, generator_train_accuracy, discriminator_train_accuracy
 
+def generate_and_save_images(generator, epoch, seed):
+  # Notice `training` is set to False.
+  # This is so all layers run in inference mode (batchnorm).
+  predictions = generator(seed, training=False)
+
+  fig = plt.figure(figsize=(4,4))
+
+  for i in range(predictions.shape[0]):
+      plt.subplot(BATCH_SIZE/4, 4, i+1)
+      plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
+      plt.axis('off')
+
+  plt.savefig('./GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch))
+  plt.show()
+
 def train_GAN(generator, discriminator, train_ds, epochs=40, save_img_every=100, gen_weights_path=WEIGHTS_PATH, disc_weights_path=WEIGHTS_PATH):
     train_step, gen_train_loss, disc_train_loss, gen_train_accuracy, disc_train_accuracy = get_gan_train_step(generator, discriminator, generator_loss, discriminator_loss)
-    gen_train_summary_writer, t1 = getSummaryWriters(generator.name)
-    disc_train_summary_writer, t2 = getSummaryWriters(discriminator.name)
+    gan_train_summary_writer, t1 = getSummaryWriters(generator.name)
     train_counter = 0
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(1,epochs+1)):
         for images, labels in train_ds:
-            train_step(images, labels)
+            seed = train_step(images, labels)
             train_counter += 1
             if train_counter % save_img_every == 0:
-                with gen_train_summary_writer.as_default():
+                with gan_train_summary_writer.as_default():
                     tf.summary.scalar("gen - loss", gen_train_loss.result(), step=train_counter)
                     tf.summary.scalar("gen - accuracy", gen_train_accuracy.result() * 100, step=train_counter)
-
-                with disc_train_summary_writer.as_default():
                     tf.summary.scalar("disc - loss", disc_train_loss.result(), step=train_counter)
                     tf.summary.scalar("disc - accuracy", disc_train_accuracy.result() * 100, step=train_counter)
+                generate_and_save_images(generator, epoch, seed)
 
         # Reset the metrics for the next epoch
         gen_train_loss.reset_states()
@@ -176,10 +191,8 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, save_img_every=100,
 
     generator.save_weights(gen_weights_path)
     discriminator.save_weights(disc_weights_path)
-    gen_train_summary_writer.close()
-    gen_train_summary_writer.close()
+    gan_train_summary_writer.close()
     t1.close()
-    t2.close()
 
 def Q1(epochs=10, save_img_every=100):
     generator = exModels.CNNGenerator()
@@ -240,7 +253,7 @@ def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     train_AE(generator, train_ds, epochs, save_img_every, weights_path=DenoisingAE_WEIGHTS_PATH)
     visual_latent_space(generator, test_ds)
 
-def Q3(epochs=10, save_img_every=100):
+def Q3(epochs=50, save_img_every=100):
     generator = exModels.Generator()
     discriminator = exModels.Discriminator()
     test_ds, train_ds = get_data_as_tensorslice()
@@ -252,7 +265,7 @@ def main():
     # visual_latent_space_from_save()
     # Q1(epochs=10, save_img_every=100)
     # Q2(epochs=10, save_img_every=100)
-    Q3(epochs=10, save_img_every=100)
+    Q3(epochs=40, save_img_every=100)
 
 
 if __name__ == '__main__':
