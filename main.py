@@ -152,7 +152,7 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
 
     return train_step, generator_train_loss, discriminator_train_loss, generator_train_accuracy, discriminator_train_accuracy
 
-def generate_and_save_images(generator, epoch, seed):
+def generate_and_save_images(generator, epoch, seed, saveFig = True):
   # Notice `training` is set to False.
   # This is so all layers run in inference mode (batchnorm).
   predictions = generator(seed, training=False)
@@ -163,11 +163,12 @@ def generate_and_save_images(generator, epoch, seed):
       plt.subplot(BATCH_SIZE/4, 4, i+1)
       plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
       plt.axis('off')
+  if saveFig:
+    plt.savefig('./GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch))
 
-  plt.savefig('./GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch))
   plt.show()
 
-def train_GAN(generator, discriminator, train_ds, epochs=40, save_img_every=100, gen_weights_path=WEIGHTS_PATH, disc_weights_path=WEIGHTS_PATH):
+def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, gen_weights_path=WEIGHTS_PATH, disc_weights_path=WEIGHTS_PATH, saveFig = True):
     train_step, gen_train_loss, disc_train_loss, gen_train_accuracy, disc_train_accuracy = get_gan_train_step(generator, discriminator, generator_loss, discriminator_loss)
     gan_train_summary_writer, t1 = getSummaryWriters(generator.name)
     train_counter = 0
@@ -176,14 +177,14 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, save_img_every=100,
         for images, labels in train_ds:
             seed = train_step(images, labels)
             train_counter += 1
-            if train_counter % save_img_every == 0:
+            if train_counter % report_every == 0:
                 with gan_train_summary_writer.as_default():
                     tf.summary.scalar("gen - loss", gen_train_loss.result(), step=train_counter)
                     tf.summary.scalar("gen - accuracy", gen_train_accuracy.result() * 100, step=train_counter)
                     tf.summary.scalar("disc - loss", disc_train_loss.result(), step=train_counter)
                     tf.summary.scalar("disc - accuracy", disc_train_accuracy.result() * 100, step=train_counter)
 
-        generate_and_save_images(generator, epoch, seed)
+        generate_and_save_images(generator, epoch, seed, saveFig)
 
         # Reset the metrics for the next epoch
         gen_train_loss.reset_states()
@@ -255,7 +256,7 @@ def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     train_AE(generator, train_ds, epochs, save_img_every, weights_path=DenoisingAE_WEIGHTS_PATH)
     visual_latent_space(generator, test_ds)
 
-def Q3(epochs=50, save_img_every=100):
+def Q3(epochs=50, save_img_every=100, saveFig = True):
     generator = exModels.Generator()
     discriminator = exModels.Discriminator()
     test_ds, train_ds = get_data_as_tensorslice()
