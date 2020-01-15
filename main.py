@@ -4,6 +4,8 @@ from datetime import datetime
 import models as exModels
 from tqdm.auto import tqdm
 
+WEIGHTS_PATH = "./weights/v1"
+
 
 def get_data(normalize=True):
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -90,7 +92,7 @@ def trainEncoder(generator, train_ds, epochs=40, save_img_every=100):
         train_loss.reset_states()
         train_accuracy.reset_states()
 
-    generator.save_weights("./weights/v1")
+    generator.save_weights(WEIGHTS_PATH)
     train_summary_writer.close()
     test_summary_writer.close()
 
@@ -101,24 +103,42 @@ def Q1(epochs=10, save_img_every=100):
     exModels.printable_model(generator).summary()
     trainEncoder(generator, train_ds, epochs, save_img_every)
 
-    # visual_latent_space(generator, test_ds)
+
+def visual_latent_space_from_save():
+    test_ds, train_ds = get_data_as_tensorslice()
+    generator = exModels.CNNGenerator()
+    generator.load_weights(WEIGHTS_PATH)
+    visual_latent_space(generator, test_ds)
 
 
 def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
-    pass
+    from sklearn.manifold import TSNE
+    from sklearn.decomposition import PCA, LatentDirichletAllocation
+    import matplotlib.pyplot as plt
 
-    # from sklearn.manifold import TSNE
-    # from sklearn.decomposition import PCA,LatentDirichletAllocation
-    # tsne = TSNE(2)
-    # pca = PCA(2)
-    # lda = LatentDirichletAllocation(2)
-    # for images,labels in test_ds:
-    #     latent = generator.encode(images)
-    #     print(latent.shape)
+    tsne = TSNE(2)
+    pca = PCA(2)
+    lda = LatentDirichletAllocation(2)
+    reducer = lda
+    max_iters = 50
+    iter_count = 0
+    for images, labels in test_ds:
+        if iter_count % max_iters == max_iters - 1:
+            break
+        else:
+            iter_count += 1
+        imgs = generator.encode(images)
+        vis_x, vis_y = reducer.fit_transform(imgs).T
+        for i in range(10):
+            where = labels == i
+            plt.plot(vis_x[where], vis_y[where], ".", label=str(i))
+    plt.legend(np.arange(0, 10))
+    plt.show()
 
 
 def main():
-    Q1(epochs=10, save_img_every=100)
+    # Q1(epochs=10, save_img_every=100)
+    visual_latent_space_from_save()
 
 
 if __name__ == '__main__':
