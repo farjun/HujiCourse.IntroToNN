@@ -121,10 +121,11 @@ def visual_latent_space_from_save(weights_path=WEIGHTS_PATH):
 def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
     from sklearn.manifold import TSNE
     from sklearn.decomposition import PCA, LatentDirichletAllocation
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
     import matplotlib.pyplot as plt
-    tsne = TSNE(2)
-    pca = PCA(2)
-    lda = LatentDirichletAllocation(2)
+    tsne = TSNE(n_components=2)
+    pca = PCA(n_components=2)
+    lda = LinearDiscriminantAnalysis(n_components=2)
     reducer = tsne
     max_iters = 100
     iter_count = 0
