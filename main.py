@@ -171,6 +171,7 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, save_img_every=100,
     train_step, gen_train_loss, disc_train_loss, gen_train_accuracy, disc_train_accuracy = get_gan_train_step(generator, discriminator, generator_loss, discriminator_loss)
     gan_train_summary_writer, t1 = getSummaryWriters(generator.name)
     train_counter = 0
+    seed = None
     for epoch in tqdm(range(1,epochs+1)):
         for images, labels in train_ds:
             seed = train_step(images, labels)
@@ -181,7 +182,8 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, save_img_every=100,
                     tf.summary.scalar("gen - accuracy", gen_train_accuracy.result() * 100, step=train_counter)
                     tf.summary.scalar("disc - loss", disc_train_loss.result(), step=train_counter)
                     tf.summary.scalar("disc - accuracy", disc_train_accuracy.result() * 100, step=train_counter)
-                generate_and_save_images(generator, epoch, seed)
+
+        generate_and_save_images(generator, epoch, seed)
 
         # Reset the metrics for the next epoch
         gen_train_loss.reset_states()
