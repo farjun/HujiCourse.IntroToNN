@@ -28,9 +28,12 @@ def get_data(normalize=True):
     return (x_train, y_train), (x_test, y_test)
 
 
-def get_data_as_tensorslice(normalize=True):
+def get_data_as_tensorslice(normalize=True, shuffle_train=True):
     (x_train, y_train), (x_test, y_test) = get_data(normalize)
-    train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train)).shuffle(10000).batch(BATCH_SIZE)
+    train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+    if shuffle_train:
+        train_ds = train_ds.shuffle(10000)
+    train_ds = train_ds.batch(BATCH_SIZE)
     test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(BATCH_SIZE)
     return test_ds, train_ds
 
@@ -160,20 +163,23 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
 
     return train_step, generator_train_loss, discriminator_train_loss, generator_train_accuracy, discriminator_train_accuracy
 
-def generate_and_save_images(generator, epoch, seed, saveFig = True):
-  predictions = generator(seed)
-  num_of_elements = 16
-  skip = int(BATCH_SIZE/num_of_elements)
 
-  fig = plt.figure(figsize=(4, 4))
+def generate_and_save_images(generator, epoch, seed, saveFig=True):
+    predictions = generator(seed)
+    num_of_elements = 16
+    skip = int(BATCH_SIZE / num_of_elements)
 
-  for j in range(0,BATCH_SIZE, skip):
-      i = int(j/skip)
-      plt.subplot(4, 4, i+1)
-      plt.imshow(predictions[i, :, :, 0] * 255.0, cmap='gray')
-      plt.axis('off')
-  if saveFig:
-    plt.savefig('./GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch))
+    fig = plt.figure(figsize=(4, 4))
+
+    for j in range(0, BATCH_SIZE, skip):
+        i = int(j / skip)
+        plt.subplot(4, 4, i + 1)
+        plt.imshow(predictions[i, :, :, 0] * 255.0, cmap='gray')
+        plt.axis('off')
+    if saveFig:
+        plt.savefig('./GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch))
+
+
 plt.show()
 
 
@@ -270,8 +276,8 @@ def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     visual_latent_space(generator, test_ds)
 
 
-def Q3(epochs=50, save_img_every=100, saveFig = True):
-    generator = exModels.Generator(lastActivation = 'tanh')
+def Q3(epochs=50, save_img_every=100, saveFig=True):
+    generator = exModels.Generator(lastActivation='tanh')
     discriminator = exModels.Discriminator()
     test_ds, train_ds = get_data_as_tensorslice()
     exModels.printable_model(generator).summary()
@@ -296,6 +302,7 @@ def z_train_step(generator):
     @tf.function
     def train_step(x, z):
         with  tf.GradientTape() as latent_tape, tf.GradientTape() as generator_tape:
+
             res_imgs = generator(z)
             loss = l1_loss(x, res_imgs)
 
@@ -305,30 +312,75 @@ def z_train_step(generator):
             grads = latent_tape.gradient(loss, [z])
             latent_opt.apply_gradients(zip(grads, [z]))
             train_loss(loss)
-    return train_step,
+
+    return train_step, train_loss
 
 
-def train_glo(test_ds, train_ds,generator, epochs, save_img_every, use_vgg: bool = False):
+def train_glo(test_ds, train_ds, generator, epochs, save_img_every, use_vgg: bool = False):
+    train_summary_writer, test_summary_writer = getSummaryWriters(generator.name)
     if use_vgg:
         raise NotImplementedError()
     else:
-        train_step = z_train_step(generator)
-    raise NotImplementedError()
+        train_step, train_loss = z_train_step(generator)
+
+    train_size = get_data()[0][0].shape[0]
+
+    latent_dim = 10
+    Z = np.random.normal(size=(train_size, latent_dim))
+    Z /= np.linalg.norm(Z,axis=0)
+    Z_input = tf.Variable(tf.zeros((BATCH_SIZE, latent_dim)), trainable=True, dtype=tf.float32)
+
+    train_counter = 0
+    for epoch in tqdm(range(1, epochs + 1)):
+        slicing_idx = 0
+        for images, labels in train_ds:
+            start, end = slicing_idx * BATCH_SIZE, (slicing_idx + 1) * BATCH_SIZE
+            Z_np = Z[start:end]
+            Z_input.assign(Z_np)
+            train_step(images, Z_input)
+            Z[start:end] = Z_input.numpy()
+            train_counter += 1
+            if train_counter % save_img_every == 0:
+                with train_summary_writer.as_default():
+                    image_input = images
+                    common = {
+                        "step": train_counter,
+                        "max_outputs": 3
+                    }
+                    tf.summary.image(
+                        "generator_img",
+                        generator(Z_input),
+                        **common
+                    )
+                    tf.summary.image(
+                        "src_img",
+                        image_input,
+                        **common
+                    )
+                with train_summary_writer.as_default():
+                    tf.summary.scalar("loss", train_loss.result(), step=train_counter)
+            slicing_idx += 1
+        train_loss.reset_states()
+
+    train_summary_writer.close()
+    test_summary_writer.close()
+
 
 def Q4(epochs=50, save_img_every=100, use_vgg=False):
     generator = exModels.GLO()
     get_data_as_tensorslice()
-    test_ds, train_ds = get_data_as_tensorslice()
+    test_ds, train_ds = get_data_as_tensorslice(shuffle_train=False)
     exModels.printable_model(generator).summary()
-    train_glo(test_ds, train_ds, epochs, save_img_every, use_vgg)
-
+    train_glo(test_ds, train_ds, generator, epochs, save_img_every, use_vgg)
 
 
 def main():
     # visual_latent_space_from_save()
     # Q1(epochs=10, save_img_every=100)
     # Q2(epochs=10, save_img_every=100)
-    Q3(epochs=40, save_img_every=100)
+    # Q3(epochs=1, save_img_every=100)
+
+    Q4(epochs=1, save_img_every=100)
 
 
 if __name__ == '__main__':
