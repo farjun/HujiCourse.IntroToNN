@@ -11,7 +11,7 @@ def printable_model(model: Model, input_shape=(28, 28, 1)):
 
 class CNNGenerator(Model):
 
-    def __init__(self):
+    def __init__(self, lastActivation = 'sigmoid'):
         super(CNNGenerator, self).__init__()
         self.conv1 = Conv2D(32, (3, 3), strides=(2, 2), padding='same', activation='relu')
         self.conv2 = Conv2D(64, (3, 3), strides=(2, 2), padding='same', activation='relu')
@@ -23,7 +23,7 @@ class CNNGenerator(Model):
                         activation='relu')  # changed the size so it would fit the reshaper, we can change it later
         self.reshaper = Reshape((7, 7, 64))
         self.conv3 = Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same', activation='relu')
-        self.conv4 = Conv2DTranspose(1, (3, 3), strides=(2, 2), padding='same', activation='tanh')
+        self.conv4 = Conv2DTranspose(1, (3, 3), strides=(2, 2), padding='same', activation=lastActivation)
 
     def encode(self, x, **kwargs):
         x = self.conv1(x)
