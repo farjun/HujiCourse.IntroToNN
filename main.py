@@ -158,8 +158,6 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
         generator_train_accuracy.update_state(tf.zeros_like(real_im_output), real_im_output)
         discriminator_train_accuracy.update_state(tf.ones_like(real_im_output), real_im_output)
 
-        return noise
-
     return train_step, generator_train_loss, discriminator_train_loss, generator_train_accuracy, discriminator_train_accuracy
 
 def generate_and_save_images(generator, epoch, seed, saveFig = True):
@@ -187,10 +185,10 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, g
                                                                                                               discriminator_loss)
     gan_train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
-    seed = None
+    seed = tf.random.normal((BATCH_SIZE, 1))
     for epoch in tqdm(range(1, epochs + 1)):
         for images, labels in train_ds:
-            seed = train_step(images, labels)
+            train_step(images, labels)
             train_counter += 1
             if train_counter % report_every == 0:
                 with gan_train_summary_writer.as_default():
