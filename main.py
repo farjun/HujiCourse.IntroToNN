@@ -296,13 +296,12 @@ def load_VGG():
 def z_train_step(generator):
     l1_loss = tf.keras.losses.MeanAbsoluteError()
     train_loss = tf.keras.metrics.Mean(name='train_loss')
-    generator_opt = tf.keras.optimizers.Adam()
-    latent_opt = tf.keras.optimizers.Adam()
+    generator_opt = tf.keras.optimizers.Adam(1e-4)
+    latent_opt = tf.keras.optimizers.Adam(learning_rate=1e-3)
 
     @tf.function
     def train_step(x, z):
         with  tf.GradientTape() as latent_tape, tf.GradientTape() as generator_tape:
-
             res_imgs = generator(z)
             loss = l1_loss(x, res_imgs)
 
@@ -333,8 +332,13 @@ def train_glo(test_ds, train_ds, generator, epochs, save_img_every, use_vgg: boo
     train_counter = 0
     for epoch in tqdm(range(1, epochs + 1)):
         slicing_idx = 0
+        last_end = 0
         for images, labels in train_ds:
-            start, end = slicing_idx * BATCH_SIZE, (slicing_idx + 1) * BATCH_SIZE
+            size = images.get_shape()[0]
+            if size != BATCH_SIZE:
+                break
+            start, end = last_end, last_end + size
+            last_end = end
             Z_np = Z[start:end]
             Z_input.assign(Z_np)
             train_step(images, Z_input)
@@ -368,9 +372,8 @@ def train_glo(test_ds, train_ds, generator, epochs, save_img_every, use_vgg: boo
 
 def Q4(epochs=50, save_img_every=100, use_vgg=False):
     generator = exModels.GLO()
-    get_data_as_tensorslice()
     test_ds, train_ds = get_data_as_tensorslice(shuffle_train=False)
-    exModels.printable_model(generator).summary()
+    exModels.printable_model(exModels.GLO()).summary()
     train_glo(test_ds, train_ds, generator, epochs, save_img_every, use_vgg)
 
 
@@ -380,7 +383,7 @@ def main():
     # Q2(epochs=10, save_img_every=100)
     # Q3(epochs=1, save_img_every=100)
 
-    Q4(epochs=1, save_img_every=100)
+    Q4(epochs=10, save_img_every=100)
 
 
 if __name__ == '__main__':
