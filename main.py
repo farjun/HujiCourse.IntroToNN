@@ -9,7 +9,7 @@ cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 from matplotlib import pyplot as plt
 
 # WEIGHTS_PATH = "./weights/AE/v1"
-BATCH_SIZE = 32
+BATCH_SIZE = 256
 WEIGHTS_PATH = "./weights/v1"
 DenoisingAE_WEIGHTS_PATH = "./weights/DenoisingAE/v1"
 GanGenerator_WEIGHTS_PATH = "./weights/GanGenerator/v1"
@@ -124,10 +124,10 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
     generator_optimizer = tf.keras.optimizers.Adam(1e-3)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
 
-    generator_train_loss = tf.keras.metrics.Mean(name='train_loss')
-    discriminator_train_loss = tf.keras.metrics.Mean(name='train_loss')
-    generator_train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
-    discriminator_train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
+    generator_train_loss = tf.keras.metrics.Mean(name='gen-train_loss')
+    discriminator_train_loss = tf.keras.metrics.Mean(name='disc-train_loss')
+    generator_train_accuracy = tf.keras.metrics.BinaryAccuracy(name='gen-train_accuracy')
+    discriminator_train_accuracy = tf.keras.metrics.BinaryAccuracy(name='disc-train_accuracy')
 
     @tf.function
     def train_step(images, labels):
@@ -150,22 +150,23 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
         generator_train_loss(generator_loss)
         discriminator_train_loss(discriminator_loss)
 
-        generator_train_accuracy(real_im_output, tf.zeros_like(real_im_output))
-        discriminator_train_accuracy(real_im_output, tf.ones_like(real_im_output))
+        generator_train_accuracy.update_state(tf.zeros_like(real_im_output), real_im_output)
+        discriminator_train_accuracy.update_state(tf.ones_like(real_im_output), real_im_output)
         return noise
 
     return train_step, generator_train_loss, discriminator_train_loss, generator_train_accuracy, discriminator_train_accuracy
 
 def generate_and_save_images(generator, epoch, seed, saveFig = True):
-  # Notice `training` is set to False.
-  # This is so all layers run in inference mode (batchnorm).
-  predictions = generator(seed, training=False)
+  predictions = generator(seed)
+  num_of_elements = 16
+  skip = int(BATCH_SIZE/num_of_elements)
 
   fig = plt.figure(figsize=(4, 4))
 
-  for i in range(0,int(BATCH_SIZE/2)):
+  for j in range(0,BATCH_SIZE, skip):
+      i = int(j/skip)
       plt.subplot(4, 4, i+1)
-      plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
+      plt.imshow(predictions[i, :, :, 0] * 255.0, cmap='gray')
       plt.axis('off')
   if saveFig:
     plt.savefig('./GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch))
@@ -260,7 +261,7 @@ def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     visual_latent_space(generator, test_ds)
 
 def Q3(epochs=50, save_img_every=100, saveFig = True):
-    generator = exModels.Generator()
+    generator = exModels.Generator(lastActivation = 'tanh')
     discriminator = exModels.Discriminator()
     test_ds, train_ds = get_data_as_tensorslice()
     exModels.printable_model(generator).summary()

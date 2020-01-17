@@ -61,15 +61,15 @@ class DenoisingAE(CNNGenerator):
 class Discriminator(CNNGenerator):
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.densePredict = Dense(1,activation='sigmoid')
+        self.densePredict = Dense(1)
 
     def call(self, x, **kwargs):
         x = super().encode(x)
         return self.densePredict(x)
 
 class Generator(CNNGenerator):
-    def __init__(self):
-        super(Generator, self).__init__()
+    def __init__(self, lastActivation = 'sigmoid'):
+        super(Generator, self).__init__(lastActivation = lastActivation)
 
     def call(self, x, **kwargs):
         return super().decode(x)
