@@ -157,6 +157,7 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
 
         generator_train_accuracy.update_state(tf.zeros_like(real_im_output), real_im_output)
         discriminator_train_accuracy.update_state(tf.ones_like(real_im_output), real_im_output)
+
         return noise
 
     return train_step, generator_train_loss, discriminator_train_loss, generator_train_accuracy, discriminator_train_accuracy
