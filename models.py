@@ -23,7 +23,7 @@ class CNNGenerator(Model):
                         activation='relu')  # changed the size so it would fit the reshaper, we can change it later
         self.reshaper = Reshape((7, 7, 64))
         self.conv3 = Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same', activation='relu')
-        self.conv4 = Conv2DTranspose(1, (3, 3), strides=(2, 2), padding='same', activation='sigmoid')
+        self.conv4 = Conv2DTranspose(1, (3, 3), strides=(2, 2), padding='same', activation='tanh')
 
     def encode(self, x, **kwargs):
         x = self.conv1(x)
@@ -61,11 +61,11 @@ class DenoisingAE(CNNGenerator):
 class Discriminator(CNNGenerator):
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.predict = Dense(1,activation='sigmoid')
+        self.densePredict = Dense(1,activation='sigmoid')
 
     def call(self, x, **kwargs):
         x = super().encode(x)
-        return self.predict(x)
+        return self.densePredict(x)
 
 class Generator(CNNGenerator):
     def __init__(self):

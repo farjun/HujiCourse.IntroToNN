@@ -34,18 +34,22 @@ def get_data_as_tensorslice(normalize=True):
     return test_ds, train_ds
 
 
-def getSummaryWriters(modelName):
+def getSummaryWriters(modelName ,onlyTrain = False):
     # tensor board
     # TODO not sure why to use different directories.
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    train_log_dir = f'logs/{modelName}/' + current_time + '/train'
-    print("run: tensorboard --logdir ./" + train_log_dir + " --port 6006")
-    test_log_dir = f'logs/{modelName}/' + current_time + '/test'
-    print("run: tensorboard --logdir ./" + test_log_dir + " --port 6007")
 
+    train_log_dir = f'logs/{modelName}/' + current_time + '/train'
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-    test_summary_writer = tf.summary.create_file_writer(test_log_dir)
-    return train_summary_writer, test_summary_writer
+    print("run: tensorboard --logdir ./" + train_log_dir + " --port 6006")
+
+    if not onlyTrain:
+        test_log_dir = f'logs/{modelName}/' + current_time + '/test'
+        test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+        print("run: tensorboard --logdir ./" + test_log_dir + " --port 6007")
+        return train_summary_writer, test_summary_writer
+
+    return train_summary_writer
 
 
 def get_train_step(generator: tf.keras.Model, loss_object):
@@ -117,7 +121,7 @@ def generator_loss(fake_output):
     return cross_entropy(tf.ones_like(fake_output), fake_output)
 
 def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model, generator_loss_object, discriminator_loss_object ):
-    generator_optimizer = tf.keras.optimizers.Adam(1e-4)
+    generator_optimizer = tf.keras.optimizers.Adam(1e-3)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
 
     generator_train_loss = tf.keras.metrics.Mean(name='train_loss')
@@ -170,7 +174,7 @@ def generate_and_save_images(generator, epoch, seed, saveFig = True):
 
 def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, gen_weights_path=WEIGHTS_PATH, disc_weights_path=WEIGHTS_PATH, saveFig = True):
     train_step, gen_train_loss, disc_train_loss, gen_train_accuracy, disc_train_accuracy = get_gan_train_step(generator, discriminator, generator_loss, discriminator_loss)
-    gan_train_summary_writer, t1 = getSummaryWriters(generator.name)
+    gan_train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
     seed = None
     for epoch in tqdm(range(1,epochs+1)):
@@ -195,7 +199,6 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, g
     generator.save_weights(gen_weights_path)
     discriminator.save_weights(disc_weights_path)
     gan_train_summary_writer.close()
-    t1.close()
 
 def Q1(epochs=10, save_img_every=100):
     generator = exModels.CNNGenerator()
