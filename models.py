@@ -73,3 +73,11 @@ class Generator(CNNGenerator):
 
     def call(self, x, **kwargs):
         return super().decode(x)
+
+
+class GLO(CNNGenerator):
+    def __init__(self):
+        super(GLO, self).__init__()
+
+    def call(self, x, **kwargs):
+        return self.decode(x,**kwargs)
