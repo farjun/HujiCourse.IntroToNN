@@ -32,7 +32,7 @@ def get_data_as_tensorslice(normalize=True, shuffle_train=True):
     (x_train, y_train), (x_test, y_test) = get_data(normalize)
     train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     if shuffle_train:
-        train_ds = train_ds.shuffle(10000)
+        train_ds = train_ds.shuffle(60000)
     train_ds = train_ds.batch(BATCH_SIZE)
     test_ds = tf.data.Dataset.from_tensor_slices((x_test, y_test)).batch(BATCH_SIZE)
     return test_ds, train_ds
