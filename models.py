@@ -1,7 +1,7 @@
 from typing import Dict
 
 from tensorflow.keras import Model, Input
-from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Flatten, Reshape
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Dense, Flatten, Reshape, BatchNormalization, LeakyReLU
 
 
 def printable_model(model: Model, input_shape=(28, 28, 1)):
@@ -11,33 +11,45 @@ def printable_model(model: Model, input_shape=(28, 28, 1)):
 
 class CNNGenerator(Model):
 
-    def __init__(self, lastActivation = 'sigmoid'):
+    def __init__(self, lastActivation = 'sigmoid', activation = LeakyReLU()):
         super(CNNGenerator, self).__init__()
-        self.conv1 = Conv2D(32, (3, 3), strides=(2, 2), padding='same', activation='relu')
-        self.conv2 = Conv2D(64, (3, 3), strides=(2, 2), padding='same', activation='relu')
+        self.conv1 = Conv2D(32, (3, 3), strides=(2, 2), padding='same', activation=activation)
+        self.batchNormalization1 = BatchNormalization()
+        self.conv2 = Conv2D(64, (3, 3), strides=(2, 2), padding='same', activation=activation)
+        self.batchNormalization2 = BatchNormalization()
         self.flatten = Flatten()
-        self.d1 = Dense(512, activation='relu')
-        self.d2 = Dense(10, activation='relu')
-        self.d3 = Dense(512, activation='relu')
-        self.d4 = Dense(7 * 7 * 64,
-                        activation='relu')  # changed the size so it would fit the reshaper, we can change it later
+        self.d1 = Dense(512, activation=activation)
+        self.batchNormalization3 = BatchNormalization()
+        self.d2 = Dense(10, activation=activation)
+        self.batchNormalization4 = BatchNormalization()
+        self.d3 = Dense(512, activation=activation)
+        self.batchNormalization5 = BatchNormalization()
+        self.d4 = Dense(7 * 7 * 64, activation=activation)
+        self.batchNormalization6 = BatchNormalization()
+
         self.reshaper = Reshape((7, 7, 64))
-        self.conv3 = Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same', activation='relu')
+        self.conv3 = Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same', activation=activation)
         self.conv4 = Conv2DTranspose(1, (3, 3), strides=(2, 2), padding='same', activation=lastActivation)
 
     def encode(self, x, **kwargs):
         x = self.conv1(x)
+        x = self.batchNormalization1(x)
         x = self.conv2(x)
+        x = self.batchNormalization2(x)
         x = self.flatten(x)
         x = self.d1(x)
+        x = self.batchNormalization3(x)
         x = self.d2(x)
         return x
 
     def decode(self, x, **kwargs):
         x = self.d3(x)
+        x = self.batchNormalization4(x)
         x = self.d4(x)
+        x = self.batchNormalization5(x)
         x = self.reshaper(x)
         x = self.conv3(x)
+        x = self.batchNormalization6(x)
         x = self.conv4(x)
         return x
 

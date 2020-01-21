@@ -10,7 +10,7 @@ cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 from matplotlib import pyplot as plt
 
 # WEIGHTS_PATH = "./weights/AE/v1"
-BATCH_SIZE = 256
+BATCH_SIZE = 100
 WEIGHTS_PATH = "./weights/v1"
 DenoisingAE_WEIGHTS_PATH = "./weights/DenoisingAE/v1"
 GanGenerator_WEIGHTS_PATH = "./weights/GanGenerator/v1"
@@ -139,7 +139,7 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
 
     @tf.function
     def train_step(images, labels):
-        noise = tf.random.normal((BATCH_SIZE, 1))
+        noise = tf.random.normal((BATCH_SIZE, 10))
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             fake_im = generator(noise, training=True)
 
@@ -167,12 +167,9 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
 def generate_and_save_images(generator, epoch, seed, saveFig=True):
     predictions = generator(seed)
     num_of_elements = 16
-    skip = int(BATCH_SIZE / num_of_elements)
-
     fig = plt.figure(figsize=(4, 4))
 
-    for j in range(0, BATCH_SIZE, skip):
-        i = int(j / skip)
+    for i in range(num_of_elements):
         plt.subplot(4, 4, i + 1)
         plt.imshow(predictions[i, :, :, 0] * 255.0, cmap='gray')
         plt.axis('off')
@@ -191,7 +188,7 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, g
                                                                                                               discriminator_loss)
     gan_train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
-    seed = tf.random.normal((BATCH_SIZE, 1))
+    seed = tf.random.normal((16, 10))
     for epoch in tqdm(range(1, epochs + 1)):
         for images, labels in train_ds:
             train_step(images, labels)
@@ -280,8 +277,8 @@ def Q3(epochs=50, save_img_every=100, saveFig=True):
     generator = exModels.Generator(lastActivation='tanh')
     discriminator = exModels.Discriminator()
     test_ds, train_ds = get_data_as_tensorslice()
-    exModels.printable_model(generator).summary()
-    exModels.printable_model(discriminator).summary()
+    # exModels.printable_model(generator).summary()
+    # exModels.printable_model(discriminator).summary()
     train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
               disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
 
@@ -381,9 +378,9 @@ def main():
     # visual_latent_space_from_save()
     # Q1(epochs=10, save_img_every=100)
     # Q2(epochs=10, save_img_every=100)
-    # Q3(epochs=1, save_img_every=100)
+    Q3(epochs=40, save_img_every=100)
 
-    Q4(epochs=10, save_img_every=100)
+    # Q4(epochs=10, save_img_every=100)
 
 
 if __name__ == '__main__':
