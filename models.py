@@ -91,6 +91,7 @@ class Discriminator(CNNGenerator):
 
     def call(self, x, **kwargs):
         x = super().encode(x)
+        x = self.flatten(x)
         return self.densePredict(x)
 
 class Generator(CNNGenerator):

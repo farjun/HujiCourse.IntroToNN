@@ -10,7 +10,7 @@ cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 from matplotlib import pyplot as plt
 
 # WEIGHTS_PATH = "./weights/AE/v1"
-BATCH_SIZE = 100
+BATCH_SIZE = 256
 WEIGHTS_PATH = "./weights/v1"
 DenoisingAE_WEIGHTS_PATH = "./weights/DenoisingAE/v1"
 GanGenerator_WEIGHTS_PATH = "./weights/GanGenerator/v1"
@@ -129,7 +129,7 @@ def generator_loss(fake_output):
 
 def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model, generator_loss_object,
                        discriminator_loss_object):
-    generator_optimizer = tf.keras.optimizers.Adam(1e-3)
+    generator_optimizer = tf.keras.optimizers.Adam(1e-4)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
 
     generator_train_loss = tf.keras.metrics.Mean(name='gen-train_loss')
