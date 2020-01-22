@@ -72,7 +72,7 @@ def get_train_step(generator: tf.keras.Model, loss_object):
 def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=AE_WEIGHTS_PATH):
     loss_object = tf.keras.losses.MeanSquaredError()
     train_step, train_loss = get_train_step(generator, loss_object)
-    train_summary_writer, test_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
+    train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
     for epoch in tqdm(range(epochs)):
         for images, labels in train_ds:
