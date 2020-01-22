@@ -34,12 +34,12 @@ class CNNGenerator(Model):
 
     def encode(self, x, **kwargs):
         x = self.conv1(x)
-        x = self.batchNormalization1(x)
+        # x = self.batchNormalization1(x)
         x = self.conv2(x)
-        x = self.batchNormalization2(x)
+        # x = self.batchNormalization2(x)
         x = self.flatten(x)
         x = self.d1(x)
-        x = self.batchNormalization3(x)
+        # x = self.batchNormalization3(x)
         x = self.d2(x)
         return x
 
