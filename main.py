@@ -74,7 +74,7 @@ def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=AE
     train_step, train_loss = get_train_step(generator, loss_object)
     train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
-    for epoch in tqdm(range(epochs),desc="train_AE"):
+    for epoch in tqdm(range(epochs), desc="train_AE"):
         for images, labels in train_ds:
             train_step(images, labels)
             train_counter += 1
@@ -223,8 +223,8 @@ def visual_latent_space_from_save(weights_path=AE_WEIGHTS_PATH):
     visual_latent_space(generator, test_ds)
 
 
-def visual_latent_space(generator: exModels.CNNGenerator, test_ds, reducer="tsne", title_suffix=""):
-    reducer = get_reducer(reducer)
+def visual_latent_space(generator: exModels.CNNGenerator, test_ds, reducer_name="tsne", title_suffix=""):
+    reducer = get_reducer(reducer_name)
     max_iters = -1
     iter_count = 0
     Xs = None
@@ -250,7 +250,7 @@ def visual_latent_space(generator: exModels.CNNGenerator, test_ds, reducer="tsne
         y_i = vis_y[where]
         plt.plot(x_i, y_i, ".", label=str(i), markersize=14)
     plt.legend(np.arange(0, 10))
-    title = f"visual latent space with {reducer}"
+    title = f"visual latent space with {reducer_name}"
     if title_suffix:
         title += " " + title_suffix
     plt.title(title)
@@ -271,7 +271,9 @@ def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     test_ds, train_ds = get_data_as_tensorslice()
     exModels.printable_model(generator).summary()
     train_AE(generator, train_ds, epochs, save_img_every, weights_path=DenoisingAE_WEIGHTS_PATH)
-    visual_latent_space(generator, test_ds)
+    mean = noise_attributes["mean"]
+    stddev = noise_attributes["stddev"]
+    visual_latent_space(generator, test_ds, f"mean {mean} stddev {stddev}")
 
 
 def z_train_step(generator):
