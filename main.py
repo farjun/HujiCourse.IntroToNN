@@ -407,10 +407,4 @@ def visualize_model_to_file(model, file_name, input_shape=(28, 28, 1)):
 
 
 if __name__ == '__main__':
-    z1 = np.array([1, 2, 5])
-    z2 = np.array([2, 5, 10])
-    t = np.array([0.25, 0.5])
-    print(t[..., np.newaxis] * z1[np.newaxis, ...])
-    # print(z1*t + (1-t)*z2)
-
-    # main()
+    main()
