@@ -74,7 +74,7 @@ def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=AE
     train_step, train_loss = get_train_step(generator, loss_object)
     train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(epochs),desc="train_AE"):
         for images, labels in train_ds:
             train_step(images, labels)
             train_counter += 1
@@ -104,7 +104,6 @@ def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=AE
 
     generator.save_weights(weights_path)
     train_summary_writer.close()
-    test_summary_writer.close()
 
 
 def discriminator_loss(real_output, fake_output):
