@@ -273,7 +273,7 @@ def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     train_AE(generator, train_ds, epochs, save_img_every, weights_path=DenoisingAE_WEIGHTS_PATH)
     mean = noise_attributes["mean"]
     stddev = noise_attributes["stddev"]
-    visual_latent_space(generator, test_ds, f"mean {mean} stddev {stddev}")
+    visual_latent_space(generator, test_ds, title_suffix=f"mean {mean} stddev {stddev}")
 
 
 def z_train_step(generator):
