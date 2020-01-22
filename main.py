@@ -11,7 +11,7 @@ cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 from matplotlib import pyplot as plt
 
 BATCH_SIZE = 32
-AE_WEIGHTS_PATH =  "./weights/AE/v1"
+AE_WEIGHTS_PATH = "./weights/AE/v1"
 DenoisingAE_WEIGHTS_PATH = "./weights/DenoisingAE/v1"
 GanGenerator_WEIGHTS_PATH = "./weights/GanGenerator/v1"
 GanDiscriminator_WEIGHTS_PATH = "./weights/GanDiscriminator/v1"
@@ -41,12 +41,12 @@ def getSummaryWriters(modelName, onlyTrain=False):
 
     train_log_dir = f'logs/{modelName}/' + current_time + '/train'
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-    print("run: tensorboard --logdir ./" + train_log_dir + " --port 6006")
+    print("run: tensorboard --logdir ./" + train_log_dir + " --port 6006" + " --samples_per_plugin images=1")
 
     if not onlyTrain:
         test_log_dir = f'logs/{modelName}/' + current_time + '/test'
         test_summary_writer = tf.summary.create_file_writer(test_log_dir)
-        print("run: tensorboard --logdir ./" + test_log_dir + " --port 6007")
+        print("run: tensorboard --logdir ./" + test_log_dir + " --port 6007" + " --samples_per_plugin images=1")
         return train_summary_writer, test_summary_writer
 
     return train_summary_writer
@@ -224,7 +224,7 @@ def visual_latent_space_from_save(weights_path=AE_WEIGHTS_PATH):
     visual_latent_space(generator, test_ds)
 
 
-def visual_latent_space(generator: exModels.CNNGenerator, test_ds, reducer="tsne"):
+def visual_latent_space(generator: exModels.CNNGenerator, test_ds, reducer="tsne", title_suffix=""):
     reducer = get_reducer(reducer)
     max_iters = -1
     iter_count = 0
@@ -252,9 +252,12 @@ def visual_latent_space(generator: exModels.CNNGenerator, test_ds, reducer="tsne
         plt.plot(x_i, y_i, ".", label=str(i), markersize=14)
     plt.legend(np.arange(0, 10))
     title = f"visual latent space with {reducer}"
+    if title_suffix:
+        title += " " + title_suffix
     plt.title(title)
     plt.savefig(title.replace(" ", "_") + ".png")
     plt.show()
+
 
 def Q1(epochs=10, save_img_every=100):
     generator = exModels.CNNGenerator()
@@ -263,12 +266,14 @@ def Q1(epochs=10, save_img_every=100):
     train_AE(generator, train_ds, epochs, save_img_every, weights_path=AE_WEIGHTS_PATH)
     visual_latent_space(generator, test_ds)
 
+
 def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     generator = exModels.DenoisingAE(noise_attributes)
     test_ds, train_ds = get_data_as_tensorslice()
     exModels.printable_model(generator).summary()
     train_AE(generator, train_ds, epochs, save_img_every, weights_path=DenoisingAE_WEIGHTS_PATH)
     visual_latent_space(generator, test_ds)
+
 
 def z_train_step(generator):
     l1_loss = tf.keras.losses.MeanAbsoluteError()
@@ -290,6 +295,7 @@ def z_train_step(generator):
             train_loss(loss)
 
     return train_step, train_loss
+
 
 def train_glo(test_ds, train_ds, generator, epochs, save_img_every):
     train_summary_writer, test_summary_writer = getSummaryWriters(generator.name)
@@ -343,7 +349,6 @@ def train_glo(test_ds, train_ds, generator, epochs, save_img_every):
     test_summary_writer.close()
 
 
-
 def Q3(epochs=50, save_img_every=100, saveFig=True):
     generator = exModels.Generator(lastActivation='tanh')
     discriminator = exModels.Discriminator()
@@ -353,17 +358,40 @@ def Q3(epochs=50, save_img_every=100, saveFig=True):
     train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
               disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
 
+
 def Q4(epochs=50, save_img_every=100):
     generator = exModels.GLO()
     test_ds, train_ds = get_data_as_tensorslice(shuffle_train=False)
-    exModels.printable_model(exModels.GLO()).summary()
+    exModels.printable_model(exModels.GLO(), (10,)).summary()
     train_glo(test_ds, train_ds, generator, epochs, save_img_every)
+
+
+from typing import List
+
+
+def run_many_Q2(epochs=10, save_img_every=100, means: List[float] = None, stddevs: List[float] = None):
+    if not means:
+        means = [0, 0.5, 1, 2]
+    if not stddevs:
+        stddevs = [0.25, 0.5, 1]
+
+    import itertools
+    noise_attributes = {
+        "mean": 0, "stddev": 0
+    }
+    for mean, stddev in itertools.product(means, stddevs):
+        noise_attributes["mean"] = mean
+        noise_attributes["stddev"] = stddev
+        Q2(epochs=epochs, save_img_every=save_img_every, noise_attributes=noise_attributes)
 
 
 def main():
     # visual_latent_space_from_save()
     Q1(epochs=10, save_img_every=100)
-    Q2(epochs=10, save_img_every=100)
+    Q2(epochs=10, save_img_every=100, noise_attributes={
+        "mean": 0,
+        "stddev": 1,
+    })
     Q3(epochs=40, save_img_every=100)
     Q4(epochs=10, save_img_every=100)
 

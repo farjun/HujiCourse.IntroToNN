@@ -11,7 +11,7 @@ def printable_model(model: Model, input_shape=(28, 28, 1)):
 
 class CNNGenerator(Model):
 
-    def __init__(self, lastActivation = 'sigmoid'):
+    def __init__(self, lastActivation='sigmoid'):
         super(CNNGenerator, self).__init__()
         self.batchNormalization1 = BatchNormalization()
         self.batchNormalization2 = BatchNormalization()
@@ -62,7 +62,7 @@ import tensorflow as tf
 
 
 class DenoisingAE(CNNGenerator):
-    def __init__(self, noise_attributes: Dict):
+    def __init__(self, noise_attributes: Dict = None):
         super(DenoisingAE, self).__init__()
         self.noise_attributes = noise_attributes if noise_attributes else {}
 
@@ -81,9 +81,10 @@ class Discriminator(CNNGenerator):
         x = self.flatten(x)
         return self.densePredict(x)
 
+
 class Generator(CNNGenerator):
-    def __init__(self, lastActivation = 'sigmoid'):
-        super(Generator, self).__init__(lastActivation = lastActivation)
+    def __init__(self, lastActivation='sigmoid'):
+        super(Generator, self).__init__(lastActivation=lastActivation)
 
     def call(self, x, **kwargs):
         return super().decode(x)
@@ -94,4 +95,4 @@ class GLO(CNNGenerator):
         super(GLO, self).__init__()
 
     def call(self, x, **kwargs):
-        return self.decode(x,**kwargs)
+        return self.decode(x, **kwargs)
