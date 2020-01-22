@@ -18,16 +18,19 @@ GanDiscriminator_WEIGHTS_PATH = "./weights/GanDiscriminator/v1"
 GLO_WEIGHTS_PATH = "./weights/GLO/v1"
 
 
-def get_data(normalize=True):
+def get_data(normalize=True, normelizeBetweenOneAndMinusOne = False):
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     if normalize:
         x_train, x_test = x_train / 255.0, x_test / 255.0
+    elif normelizeBetweenOneAndMinusOne:
+        x_train, x_test = (x_train - 127.5) / 127.5 , (x_test - 127.5) / 127.5
+
     x_train, x_test = x_train[..., tf.newaxis], x_test[..., tf.newaxis]
     return (x_train, y_train), (x_test, y_test)
 
 
-def get_data_as_tensorslice(normalize=True, shuffle_train=True):
-    (x_train, y_train), (x_test, y_test) = get_data(normalize)
+def get_data_as_tensorslice(normalize=True, shuffle_train=True, normelizeBetweenOneAndMinusOne=False):
+    (x_train, y_train), (x_test, y_test) = get_data(normalize, normelizeBetweenOneAndMinusOne)
     train_ds = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     if shuffle_train:
         train_ds = train_ds.shuffle(60000)
@@ -354,7 +357,7 @@ def train_glo(train_ds, generator, epochs, save_img_every):
 def Q3(epochs=50, save_img_every=100, saveFig=True):
     generator = exModels.make_generator_model()
     discriminator = exModels.make_discriminator_model()
-    test_ds, train_ds = get_data_as_tensorslice()
+    test_ds, train_ds = get_data_as_tensorslice( normelizeBetweenOneAndMinusOne=True )
     # exModels.printable_model(generator).summary()
     # exModels.printable_model(discriminator).summary()
     train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
