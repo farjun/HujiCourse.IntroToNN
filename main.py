@@ -133,7 +133,7 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
 
     @tf.function
     def train_step(images, labels):
-        noise = tf.random.normal((BATCH_SIZE, 100))
+        noise = tf.random.normal((BATCH_SIZE, 10))
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             fake_im = generator(noise, training=True)
 
@@ -180,7 +180,7 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, g
                                                                                                               discriminator_loss)
     gan_train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
-    seed = tf.random.normal((16, 100))
+    seed = tf.random.normal((16, 10))
     for epoch in tqdm(range(1, epochs + 1)):
         for images, labels in train_ds:
             train_step(images, labels)
@@ -358,8 +358,6 @@ def Q3(epochs=50, save_img_every=100, saveFig=True):
     generator = exModels.Generator()
     discriminator = exModels.Discriminator()
     test_ds, train_ds = get_data_as_tensorslice( normelizeBetweenOneAndMinusOne=True )
-    # exModels.printable_model(generator).summary()
-    # exModels.printable_model(discriminator).summary()
     train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
               disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
 
