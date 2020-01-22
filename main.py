@@ -130,7 +130,7 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
 
     @tf.function
     def train_step(images, labels):
-        noise = tf.random.normal((BATCH_SIZE, 10))
+        noise = tf.random.normal((BATCH_SIZE, 100))
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             fake_im = generator(noise, training=True)
 
@@ -177,7 +177,7 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, g
                                                                                                               discriminator_loss)
     gan_train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
-    seed = tf.random.normal((16, 10))
+    seed = tf.random.normal((16, 100))
     for epoch in tqdm(range(1, epochs + 1)):
         for images, labels in train_ds:
             train_step(images, labels)
