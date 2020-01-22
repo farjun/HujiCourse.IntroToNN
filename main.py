@@ -15,6 +15,7 @@ AE_WEIGHTS_PATH = "./weights/AE/v1"
 DenoisingAE_WEIGHTS_PATH = "./weights/DenoisingAE/v1"
 GanGenerator_WEIGHTS_PATH = "./weights/GanGenerator/v1"
 GanDiscriminator_WEIGHTS_PATH = "./weights/GanDiscriminator/v1"
+GLO_WEIGHTS_PATH = "./weights/GLO/v1"
 
 
 def get_data(normalize=True):
@@ -298,10 +299,9 @@ def z_train_step(generator):
     return train_step, train_loss
 
 
-def train_glo(test_ds, train_ds, generator, epochs, save_img_every):
-    train_summary_writer, test_summary_writer = getSummaryWriters(generator.name)
+def train_glo(train_ds, generator, epochs, save_img_every):
+    train_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_step, train_loss = z_train_step(generator)
-
     train_size = get_data()[0][0].shape[0]
 
     latent_dim = 10
@@ -329,7 +329,7 @@ def train_glo(test_ds, train_ds, generator, epochs, save_img_every):
                     image_input = images
                     common = {
                         "step": train_counter,
-                        "max_outputs": 3
+                        "max_outputs": 6
                     }
                     tf.summary.image(
                         "generator_img",
@@ -345,9 +345,10 @@ def train_glo(test_ds, train_ds, generator, epochs, save_img_every):
                     tf.summary.scalar("loss", train_loss.result(), step=train_counter)
             slicing_idx += 1
         train_loss.reset_states()
-
+    generator.save_weights(GLO_WEIGHTS_PATH)
+    f_name = f"glo_z_numpy_batch_size_{BATCH_SIZE}"
+    np.save(f_name, Z)
     train_summary_writer.close()
-    test_summary_writer.close()
 
 
 def Q3(epochs=50, save_img_every=100, saveFig=True):
@@ -360,21 +361,24 @@ def Q3(epochs=50, save_img_every=100, saveFig=True):
               disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
 
 
+def interpolate_vecs(v1, v2, num=40):
+    t = np.linspace(0, 1, num)[...,np.newaxis]
+    interpolates = t * v1[np.newaxis,...] + (1-t)*v2[np.newaxis,...]
+    return interpolates
+
+
 def Q4(epochs=50, save_img_every=100):
     generator = exModels.GLO()
     test_ds, train_ds = get_data_as_tensorslice(shuffle_train=False)
     exModels.printable_model(exModels.GLO(), (10,)).summary()
-    train_glo(test_ds, train_ds, generator, epochs, save_img_every)
-
+    train_glo(train_ds, generator, epochs, save_img_every)
 
 from typing import List
-
-
 def run_many_Q2(epochs=10, save_img_every=100, means: List[float] = None, stddevs: List[float] = None):
     if not means:
-        means = [0, 0.5, 1, 2]
+        means = [0]
     if not stddevs:
-        stddevs = [0.25, 0.5, 1]
+        stddevs = [0.1, 0.25, 0.5, 1, 2, 5, 10]
 
     import itertools
     noise_attributes = {
@@ -397,5 +401,16 @@ def main():
     Q4(epochs=10, save_img_every=100)
 
 
+def visualize_model_to_file(model, file_name, input_shape=(28, 28, 1)):
+    from keras.utils import plot_model
+    plot_model(model, to_file=file_name)
+
+
 if __name__ == '__main__':
-    main()
+    z1 = np.array([1, 2, 5])
+    z2 = np.array([2, 5, 10])
+    t = np.array([0.25, 0.5])
+    print(t[..., np.newaxis] * z1[np.newaxis, ...])
+    # print(z1*t + (1-t)*z2)
+
+    # main()
