@@ -70,24 +70,66 @@ class DenoisingAE(CNNGenerator):
         x = x + tf.random.normal(tf.shape(x), **self.noise_attributes)
         return super().call(x)
 
+class Generator(Model):
+    def __init__(self):
+        super(Generator, self).__init__()
 
-class Discriminator(CNNGenerator):
+        # input is a vector of size [None, 10]
+        # self.dense1 = Dense(512, activation='relu')
+        self.dense1 = Dense(7 * 7 * 64, activation='relu')
+
+        # this is the shape of the end of the convolutions before
+        self.reshape1_decoder = Reshape(target_shape=(7, 7, 64))
+        self.conv_decoder_3 = Conv2DTranspose(32, 3, strides=2, activation='relu', padding='same')
+        self.conv_decoder_4 = Conv2DTranspose(1, 3, strides=2, padding='same', activation='tanh')
+
+    def call(self, x, **kwargs):
+        # [batch,10] => [batch,28,28,1]
+        decoded = self.dense1(x)
+        # decoded = self.dense2(decoded)
+        decoded = self.reshape1_decoder(decoded)
+        decoded = self.conv_decoder_3(decoded)
+        decoded = self.conv_decoder_4(decoded)
+        decoded = self.activation_4(decoded)
+        return decoded
+
+    def decode(self, encoded):
+        # return the decoded version (728 tf version) of the
+        # encoded parameter (10 tf vector)
+        decoded = self.dense1(encoded)
+        decoded = self.reshape1_decoder(decoded)
+        decoded = self.conv_decoder_3(decoded)
+        decoded = self.conv_decoder_4(decoded)
+
+        return decoded
+
+    def model(self):
+        x = Input(shape=(10))
+        return Model(inputs=[x], outputs=self.call(x))
+
+
+class Discriminator(Model):
     def __init__(self):
         super(Discriminator, self).__init__()
-        self.densePredict = Dense(1)
+        self.conv1 = Conv2D(32, 3, strides=2, activation='relu', padding='same')
+        self.conv2 = Conv2D(64, 3, strides=2, activation='relu', padding='same')
+        self.flatten = Flatten()
+        self.dense3 = Dense(512, activation='relu')
+        self.dense4 = Dense(1, activation='sigmoid')
+
 
     def call(self, x, **kwargs):
-        x = super().encode(x)
-        x = self.flatten(x)
-        return self.densePredict(x)
+        encoded = self.conv1(x)
+        encoded = self.conv2(encoded)
+        encoded = self.flatten(encoded)
+        encoded = self.dense3(encoded)
+        encoded = self.dense4(encoded)
+        return encoded
 
+    def model(self):
+        x = Input(shape=(28, 28, 1))
+        return Model(inputs=[x], outputs=self.call(x))
 
-class Generator(CNNGenerator):
-    def __init__(self, lastActivation='sigmoid'):
-        super(Generator, self).__init__(lastActivation=lastActivation)
-
-    def call(self, x, **kwargs):
-        return super().decode(x)
 
 
 class GLO(CNNGenerator):
@@ -96,44 +138,3 @@ class GLO(CNNGenerator):
 
     def call(self, x, **kwargs):
         return self.decode(x, **kwargs)
-
-import tensorflow.keras.layers as layers
-def make_discriminator_model():
-    model = tf.keras.Sequential()
-    model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
-                                     input_shape=[28, 28, 1]))
-    model.add(layers.LeakyReLU())
-    model.add(layers.Dropout(0.3))
-
-    model.add(layers.Conv2D(128, (5, 5), strides=(2, 2), padding='same'))
-    model.add(layers.LeakyReLU())
-    model.add(layers.Dropout(0.3))
-
-    model.add(layers.Flatten())
-    model.add(layers.Dense(1))
-
-    return model
-
-def make_generator_model():
-    model = tf.keras.Sequential()
-    model.add(layers.Dense(7*7*256, use_bias=False, input_shape=(100,)))
-    model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU())
-
-    model.add(layers.Reshape((7, 7, 256)))
-    assert model.output_shape == (None, 7, 7, 256) # Note: None is the batch size
-
-    model.add(layers.Conv2DTranspose(128, (5, 5), strides=(1, 1), padding='same', use_bias=False))
-    assert model.output_shape == (None, 7, 7, 128)
-    model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU())
-
-    model.add(layers.Conv2DTranspose(64, (5, 5), strides=(2, 2), padding='same', use_bias=False))
-    assert model.output_shape == (None, 14, 14, 64)
-    model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU())
-
-    model.add(layers.Conv2DTranspose(1, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='tanh'))
-    assert model.output_shape == (None, 28, 28, 1)
-
-    return model
