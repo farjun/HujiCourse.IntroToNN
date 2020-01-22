@@ -1,4 +1,5 @@
 from typing import Dict
+import matplotlib.pyplot as plt
 
 import numpy as np
 import tensorflow as tf
@@ -9,9 +10,8 @@ from tqdm.auto import tqdm
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 from matplotlib import pyplot as plt
 
-# WEIGHTS_PATH = "./weights/AE/v1"
-BATCH_SIZE = 256
-WEIGHTS_PATH = "./weights/v1"
+BATCH_SIZE = 32
+AE_WEIGHTS_PATH =  "./weights/AE/v1"
 DenoisingAE_WEIGHTS_PATH = "./weights/DenoisingAE/v1"
 GanGenerator_WEIGHTS_PATH = "./weights/GanGenerator/v1"
 GanDiscriminator_WEIGHTS_PATH = "./weights/GanDiscriminator/v1"
@@ -19,12 +19,9 @@ GanDiscriminator_WEIGHTS_PATH = "./weights/GanDiscriminator/v1"
 
 def get_data(normalize=True):
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
-
     if normalize:
         x_train, x_test = x_train / 255.0, x_test / 255.0
-
     x_train, x_test = x_train[..., tf.newaxis], x_test[..., tf.newaxis]
-
     return (x_train, y_train), (x_test, y_test)
 
 
@@ -40,7 +37,6 @@ def get_data_as_tensorslice(normalize=True, shuffle_train=True):
 
 def getSummaryWriters(modelName, onlyTrain=False):
     # tensor board
-    # TODO not sure why to use different directories.
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     train_log_dir = f'logs/{modelName}/' + current_time + '/train'
@@ -59,8 +55,6 @@ def getSummaryWriters(modelName, onlyTrain=False):
 def get_train_step(generator: tf.keras.Model, loss_object):
     optimizer = tf.keras.optimizers.Adam()
     train_loss = tf.keras.metrics.Mean(name='train_loss')
-    # TODO train_accuracy seems to be wrong maybe not , I'm not sure...
-    train_accuracy = tf.keras.metrics.SparseCategoricalAccuracy(name='train_accuracy')
 
     @tf.function
     def train_step(images, labels):
@@ -71,15 +65,14 @@ def get_train_step(generator: tf.keras.Model, loss_object):
         optimizer.apply_gradients(zip(gradients, generator.trainable_variables))
 
         train_loss(loss)
-        train_accuracy(images, predictions)
 
-    return train_step, train_loss, train_accuracy
+    return train_step, train_loss
 
 
-def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=WEIGHTS_PATH):
+def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=AE_WEIGHTS_PATH):
     loss_object = tf.keras.losses.MeanSquaredError()
-    train_step, train_loss, train_accuracy = get_train_step(generator, loss_object)
-    train_summary_writer, test_summary_writer = getSummaryWriters(generator.name)
+    train_step, train_loss = get_train_step(generator, loss_object)
+    train_summary_writer, test_summary_writer = getSummaryWriters(generator.name, onlyTrain=True)
     train_counter = 0
     for epoch in tqdm(range(epochs)):
         for images, labels in train_ds:
@@ -90,7 +83,7 @@ def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=WE
                     image_input = images
                     common = {
                         "step": train_counter,
-                        "max_outputs": 3
+                        "max_outputs": 6
                     }
                     tf.summary.image(
                         "generator_img",
@@ -105,11 +98,9 @@ def train_AE(generator, train_ds, epochs=40, save_img_every=100, weights_path=WE
 
             with train_summary_writer.as_default():
                 tf.summary.scalar("loss", train_loss.result(), step=train_counter)
-                tf.summary.scalar("accuracy", train_accuracy.result() * 100, step=train_counter)
 
         # Reset the metrics for the next epoch
         train_loss.reset_states()
-        train_accuracy.reset_states()
 
     generator.save_weights(weights_path)
     train_summary_writer.close()
@@ -175,13 +166,11 @@ def generate_and_save_images(generator, epoch, seed, saveFig=True):
         plt.axis('off')
     if saveFig:
         plt.savefig('./GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch))
+    plt.show()
 
 
-plt.show()
-
-
-def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, gen_weights_path=WEIGHTS_PATH,
-              disc_weights_path=WEIGHTS_PATH, saveFig=True):
+def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, gen_weights_path=AE_WEIGHTS_PATH,
+              disc_weights_path=AE_WEIGHTS_PATH, saveFig=True):
     train_step, gen_train_loss, disc_train_loss, gen_train_accuracy, disc_train_accuracy = get_gan_train_step(generator,
                                                                                                               discriminator,
                                                                                                               generator_loss,
@@ -213,31 +202,31 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, g
     gan_train_summary_writer.close()
 
 
-def Q1(epochs=10, save_img_every=100):
-    generator = exModels.CNNGenerator()
-    test_ds, train_ds = get_data_as_tensorslice()
-    exModels.printable_model(generator).summary()
-    train_AE(generator, train_ds, epochs, save_img_every)
-    visual_latent_space(generator, test_ds)
+def get_reducer(reducer: str):
+    from sklearn.manifold import TSNE
+    from sklearn.decomposition import PCA, LatentDirichletAllocation
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+
+    factory = {
+        "tsne": lambda: TSNE(2),
+        "pca": lambda: PCA(2),
+        "lda": lambda: LinearDiscriminantAnalysis(2)
+    }
+    if reducer not in factory.keys():
+        raise NotImplementedError()
+    return factory[reducer]()
 
 
-def visual_latent_space_from_save(weights_path=WEIGHTS_PATH):
+def visual_latent_space_from_save(weights_path=AE_WEIGHTS_PATH):
     test_ds, train_ds = get_data_as_tensorslice()
     generator = exModels.CNNGenerator()
     generator.load_weights(weights_path)
     visual_latent_space(generator, test_ds)
 
 
-def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
-    from sklearn.manifold import TSNE
-    from sklearn.decomposition import PCA, LatentDirichletAllocation
-    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-    import matplotlib.pyplot as plt
-    tsne = TSNE(n_components=2)
-    pca = PCA(n_components=2)
-    lda = LinearDiscriminantAnalysis(n_components=2)
-    reducer = tsne
-    max_iters = 100
+def visual_latent_space(generator: exModels.CNNGenerator, test_ds, reducer="tsne"):
+    reducer = get_reducer(reducer)
+    max_iters = -1
     iter_count = 0
     Xs = None
     Y = None
@@ -262,8 +251,17 @@ def visual_latent_space(generator: exModels.CNNGenerator, test_ds):
         y_i = vis_y[where]
         plt.plot(x_i, y_i, ".", label=str(i), markersize=14)
     plt.legend(np.arange(0, 10))
+    title = f"visual latent space with {reducer}"
+    plt.title(title)
+    plt.savefig(title.replace(" ", "_") + ".png")
     plt.show()
 
+def Q1(epochs=10, save_img_every=100):
+    generator = exModels.CNNGenerator()
+    test_ds, train_ds = get_data_as_tensorslice()
+    exModels.printable_model(generator).summary()
+    train_AE(generator, train_ds, epochs, save_img_every, weights_path=AE_WEIGHTS_PATH)
+    visual_latent_space(generator, test_ds)
 
 def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     generator = exModels.DenoisingAE(noise_attributes)
@@ -271,24 +269,6 @@ def Q2(epochs=10, save_img_every=100, noise_attributes: Dict = None):
     exModels.printable_model(generator).summary()
     train_AE(generator, train_ds, epochs, save_img_every, weights_path=DenoisingAE_WEIGHTS_PATH)
     visual_latent_space(generator, test_ds)
-
-
-def Q3(epochs=50, save_img_every=100, saveFig=True):
-    generator = exModels.Generator(lastActivation='tanh')
-    discriminator = exModels.Discriminator()
-    test_ds, train_ds = get_data_as_tensorslice()
-    # exModels.printable_model(generator).summary()
-    # exModels.printable_model(discriminator).summary()
-    train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
-              disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
-
-
-def load_VGG():
-    from keras.applications.vgg16 import VGG16
-    model = VGG16()
-
-    pass
-
 
 def z_train_step(generator):
     l1_loss = tf.keras.losses.MeanAbsoluteError()
@@ -311,19 +291,15 @@ def z_train_step(generator):
 
     return train_step, train_loss
 
-
-def train_glo(test_ds, train_ds, generator, epochs, save_img_every, use_vgg: bool = False):
+def train_glo(test_ds, train_ds, generator, epochs, save_img_every):
     train_summary_writer, test_summary_writer = getSummaryWriters(generator.name)
-    if use_vgg:
-        raise NotImplementedError()
-    else:
-        train_step, train_loss = z_train_step(generator)
+    train_step, train_loss = z_train_step(generator)
 
     train_size = get_data()[0][0].shape[0]
 
     latent_dim = 10
     Z = np.random.normal(size=(train_size, latent_dim))
-    Z /= np.linalg.norm(Z,axis=0)
+    Z /= np.linalg.norm(Z, axis=0)
     Z_input = tf.Variable(tf.zeros((BATCH_SIZE, latent_dim)), trainable=True, dtype=tf.float32)
 
     train_counter = 0
@@ -367,20 +343,29 @@ def train_glo(test_ds, train_ds, generator, epochs, save_img_every, use_vgg: boo
     test_summary_writer.close()
 
 
-def Q4(epochs=50, save_img_every=100, use_vgg=False):
+
+def Q3(epochs=50, save_img_every=100, saveFig=True):
+    generator = exModels.Generator(lastActivation='tanh')
+    discriminator = exModels.Discriminator()
+    test_ds, train_ds = get_data_as_tensorslice()
+    # exModels.printable_model(generator).summary()
+    # exModels.printable_model(discriminator).summary()
+    train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
+              disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
+
+def Q4(epochs=50, save_img_every=100):
     generator = exModels.GLO()
     test_ds, train_ds = get_data_as_tensorslice(shuffle_train=False)
     exModels.printable_model(exModels.GLO()).summary()
-    train_glo(test_ds, train_ds, generator, epochs, save_img_every, use_vgg)
+    train_glo(test_ds, train_ds, generator, epochs, save_img_every)
 
 
 def main():
     # visual_latent_space_from_save()
-    # Q1(epochs=10, save_img_every=100)
-    # Q2(epochs=10, save_img_every=100)
+    Q1(epochs=10, save_img_every=100)
+    Q2(epochs=10, save_img_every=100)
     Q3(epochs=40, save_img_every=100)
-
-    # Q4(epochs=10, save_img_every=100)
+    Q4(epochs=10, save_img_every=100)
 
 
 if __name__ == '__main__':
