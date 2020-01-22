@@ -352,8 +352,8 @@ def train_glo(train_ds, generator, epochs, save_img_every):
 
 
 def Q3(epochs=50, save_img_every=100, saveFig=True):
-    generator = exModels.Generator(lastActivation='tanh')
-    discriminator = exModels.Discriminator()
+    generator = exModels.make_generator_model()
+    discriminator = exModels.make_discriminator_model()
     test_ds, train_ds = get_data_as_tensorslice()
     # exModels.printable_model(generator).summary()
     # exModels.printable_model(discriminator).summary()
