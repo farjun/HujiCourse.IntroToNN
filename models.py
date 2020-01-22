@@ -44,8 +44,8 @@ class CNNGenerator(Model):
         return x
 
     def decode(self, x, **kwargs):
-        # x = self.d3(x)
-        # x = self.batchNormalization4(x)
+        x = self.d3(x)
+        x = self.batchNormalization4(x)
         x = self.d4(x)
         x = self.batchNormalization5(x)
         x = self.reshaper(x)
