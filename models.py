@@ -95,3 +95,40 @@ class GLO(CNNGenerator):
 
     def call(self, x, **kwargs):
         return self.decode(x, **kwargs)
+
+
+class DiscriminatorV2(Model):
+    def __init__(self):
+        super(DiscriminatorV2, self).__init__()
+        self.conv1 = Conv2D(64, (4, 4), strides=(2, 2), padding='same', activation='relu')
+        self.conv2 = Conv2D(128, (4, 4), strides=(2, 2), padding='same', activation='relu')
+        self.batchNormalization1 = BatchNormalization()
+        self.d1 = Dense(512, activation='relu')
+        self.batchNormalization2 = BatchNormalization()
+        self.d2 = Dense(10, activation='relu')
+
+    def call(self, x, **kwargs):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.batchNormalization1(x)
+        x = self.d1(x)
+        x = self.batchNormalization2(x)
+        x = self.d2(x)
+        return x
+
+
+class GeneratorV2(Model):
+    def __init__(self):
+        super(GeneratorV2, self).__init__()
+        self.d1 = Dense(1024, activation='relu')
+        self.d2 = Dense(7 * 7 * 128, activation='relu')
+        self.reshaper = Reshape((7, 7, 128))
+        self.conv1 = Conv2DTranspose(64, (4, 4), strides=(2, 2), padding='same', activation='relu')
+        self.densePredict = Dense(1)
+
+    def call(self, x, **kwargs):
+        x = self.d1(x)
+        x = self.d2(x)
+        x = self.reshaper(x)
+        x = self.conv1(x)
+        return self.densePredict(x)
