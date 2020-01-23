@@ -13,12 +13,13 @@ class CNNGenerator(Model):
 
     def __init__(self, lastActivation='sigmoid'):
         super(CNNGenerator, self).__init__()
-        self.batchNormalization1 = BatchNormalization()
-        self.batchNormalization2 = BatchNormalization()
-        self.batchNormalization3 = BatchNormalization()
-        self.batchNormalization4 = BatchNormalization()
-        self.batchNormalization5 = BatchNormalization()
-        self.batchNormalization6 = BatchNormalization()
+        # TODO insert it again using a flag don't add it globally...
+        # self.batchNormalization1 = BatchNormalization()
+        # self.batchNormalization2 = BatchNormalization()
+        # self.batchNormalization3 = BatchNormalization()
+        # self.batchNormalization4 = BatchNormalization()
+        # self.batchNormalization5 = BatchNormalization()
+        # self.batchNormalization6 = BatchNormalization()
 
         self.conv1 = Conv2D(32, (3, 3), strides=(2, 2), padding='same', activation='relu')
         self.conv2 = Conv2D(64, (3, 3), strides=(2, 2), padding='same', activation='relu')
@@ -45,12 +46,12 @@ class CNNGenerator(Model):
 
     def decode(self, x, **kwargs):
         x = self.d3(x)
-        x = self.batchNormalization4(x)
+        # x = self.batchNormalization4(x)
         x = self.d4(x)
-        x = self.batchNormalization5(x)
+        # x = self.batchNormalization5(x)
         x = self.reshaper(x)
         x = self.conv3(x)
-        x = self.batchNormalization6(x)
+        # x = self.batchNormalization6(x)
         x = self.conv4(x)
         return x
 
