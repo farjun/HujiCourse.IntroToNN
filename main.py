@@ -355,8 +355,8 @@ def train_glo(train_ds, generator, epochs, save_img_every):
 
 
 def Q3(epochs=50, save_img_every=100, saveFig=True):
-    generator = exModels.GeneratorV2()
-    discriminator = exModels.DiscriminatorV2()
+    generator = exModels.Generator()
+    discriminator = exModels.Discriminator()
     test_ds, train_ds = get_data_as_tensorslice( normelizeBetweenOneAndMinusOne=True )
     train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
               disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
@@ -408,5 +408,4 @@ def visualize_model_to_file(model, file_name, input_shape=(28, 28, 1)):
 
 
 if __name__ == '__main__':
-    # main()
-    Q3()
+    main()
