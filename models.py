@@ -11,8 +11,14 @@ def printable_model(model: Model, input_shape=(28, 28, 1)):
 
 class CNNGenerator(Model):
 
-    def __init__(self, lastActivation='sigmoid'):
+    def __init__(self, lastActivation='sigmoid', useNormalization = False):
         super(CNNGenerator, self).__init__()
+        self.useNormalization = useNormalization
+
+        if self.useNormalization:
+            self.batchNormalization4 = BatchNormalization()
+            self.batchNormalization5 = BatchNormalization()
+            self.batchNormalization6 = BatchNormalization()
 
         self.conv1 = Conv2D(32, (3, 3), strides=(2, 2), padding='same', activation='relu')
         self.conv2 = Conv2D(64, (3, 3), strides=(2, 2), padding='same', activation='relu')
@@ -36,9 +42,12 @@ class CNNGenerator(Model):
 
     def decode(self, x, **kwargs):
         x = self.d3(x)
+        x = self.batchNormalization4(x) if self.useNormalization else x
         x = self.d4(x)
+        x = self.batchNormalization5(x) if self.useNormalization else x
         x = self.reshaper(x)
         x = self.conv3(x)
+        x = self.batchNormalization6(x) if self.useNormalization else x
         x = self.conv4(x)
         return x
 
@@ -71,7 +80,7 @@ class Discriminator(CNNGenerator):
 
 class Generator(CNNGenerator):
     def __init__(self, lastActivation='sigmoid'):
-        super(Generator, self).__init__(lastActivation=lastActivation)
+        super(Generator, self).__init__(lastActivation=lastActivation, useNormalization=True)
 
     def call(self, x, **kwargs):
         return super().decode(x)

@@ -158,7 +158,7 @@ def get_gan_train_step(generator: tf.keras.Model, discriminator: tf.keras.Model,
     return train_step, generator_train_loss, discriminator_train_loss, generator_train_accuracy, discriminator_train_accuracy
 
 
-def generate_and_save_images(generator, epoch, seed, saveFig=True):
+def generate_and_save_images(generator, path, seed, saveFig=True):
     predictions = generator(seed)
     num_of_elements = 16
     fig = plt.figure(figsize=(4, 4))
@@ -168,7 +168,8 @@ def generate_and_save_images(generator, epoch, seed, saveFig=True):
         plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
         plt.axis('off')
     if saveFig:
-        plt.savefig('./GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch))
+        plt.savefig(path)
+
     plt.show()
 
 
@@ -192,7 +193,7 @@ def train_GAN(generator, discriminator, train_ds, epochs=40, report_every=100, g
                     tf.summary.scalar("disc - loss", disc_train_loss.result(), step=train_counter)
                     tf.summary.scalar("disc - accuracy", disc_train_accuracy.result() * 100, step=train_counter)
 
-        generate_and_save_images(generator, epoch, seed, saveFig)
+        generate_and_save_images(generator, './GanGeneratedImages/image_at_epoch_{:04d}.png'.format(epoch), seed, saveFig)
 
         # Reset the metrics for the next epoch
         gen_train_loss.reset_states()
@@ -358,13 +359,21 @@ def train_glo(train_ds, generator, epochs, save_img_every):
     train_summary_writer.close()
 
 
-def Q3(epochs=50, save_img_every=100, saveFig=True):
+def Q3(epochs=50, save_img_every=100, saveFig=True, load_weights = False):
     generator = exModels.Generator()
     discriminator = exModels.Discriminator()
-    test_ds, train_ds = get_data_as_tensorslice(normelizeBetweenOneAndMinusOne=True)
-    train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
-              disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
-
+    if load_weights:
+        generator.load_weights(GanGenerator_WEIGHTS_PATH)
+        discriminator.load_weights(GanDiscriminator_WEIGHTS_PATH)
+    else:
+        test_ds, train_ds = get_data_as_tensorslice(normelizeBetweenOneAndMinusOne=True)
+        train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
+                  disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
+    for i in range(10):
+        v1 = tf.random.normal((1, 10))
+        v2 = tf.random.normal((1, 10))
+        interpolation = interpolate_vecs(v1, v2, num=16)
+        generate_and_save_images(generator,"GanGeneratedImages/interpolation{i}".format(i=i),interpolation[0])
 
 def Q4(epochs=50, save_img_every=100):
     generator = exModels.GLO()
@@ -480,5 +489,5 @@ def visualize_model_to_file(model, file_name, input_shape=(28, 28, 1)):
 
 
 if __name__ == '__main__':
-    Q4_from_save()
+    Q3(epochs=10,load_weights=True)
     # main()
