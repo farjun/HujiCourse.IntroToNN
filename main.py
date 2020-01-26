@@ -18,12 +18,12 @@ GanDiscriminator_WEIGHTS_PATH = "./weights/GanDiscriminator/v1"
 GLO_WEIGHTS_PATH = "./weights/GLO/v1"
 
 
-def get_data(normalize=True, normelizeBetweenOneAndMinusOne = False):
+def get_data(normalize=True, normelizeBetweenOneAndMinusOne=False):
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
     if normalize:
         x_train, x_test = x_train / 255.0, x_test / 255.0
     elif normelizeBetweenOneAndMinusOne:
-        x_train, x_test = (x_train - 127.5) / 127.5 , (x_test - 127.5) / 127.5
+        x_train, x_test = (x_train - 127.5) / 127.5, (x_test - 127.5) / 127.5
 
     x_train, x_test = x_train[..., tf.newaxis], x_test[..., tf.newaxis]
     return (x_train, y_train), (x_test, y_test)
@@ -262,6 +262,12 @@ def visual_latent_space(generator: exModels.CNNGenerator, test_ds, reducer_name=
     plt.show()
 
 
+def interpolate_vecs(v1, v2, num=40):
+    t = np.linspace(0, 1, num)[..., np.newaxis]
+    interpolates = (1 - t) * v1[np.newaxis, ...] + t * v2[np.newaxis, ...]
+    return interpolates
+
+
 def Q1(epochs=10, save_img_every=100):
     generator = exModels.CNNGenerator()
     test_ds, train_ds = get_data_as_tensorslice()
@@ -314,7 +320,6 @@ def train_glo(train_ds, generator, epochs, save_img_every):
 
     train_counter = 0
     for epoch in tqdm(range(1, epochs + 1)):
-        slicing_idx = 0
         last_end = 0
         for images, labels in train_ds:
             size = images.get_shape()[0]
@@ -346,7 +351,6 @@ def train_glo(train_ds, generator, epochs, save_img_every):
                     )
                 with train_summary_writer.as_default():
                     tf.summary.scalar("loss", train_loss.result(), step=train_counter)
-            slicing_idx += 1
         train_loss.reset_states()
     generator.save_weights(GLO_WEIGHTS_PATH)
     f_name = f"glo_z_numpy_batch_size_{BATCH_SIZE}"
@@ -357,15 +361,9 @@ def train_glo(train_ds, generator, epochs, save_img_every):
 def Q3(epochs=50, save_img_every=100, saveFig=True):
     generator = exModels.Generator()
     discriminator = exModels.Discriminator()
-    test_ds, train_ds = get_data_as_tensorslice( normelizeBetweenOneAndMinusOne=True )
+    test_ds, train_ds = get_data_as_tensorslice(normelizeBetweenOneAndMinusOne=True)
     train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
               disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
-
-
-def interpolate_vecs(v1, v2, num=40):
-    t = np.linspace(0, 1, num)[...,np.newaxis]
-    interpolates = t * v1[np.newaxis,...] + (1-t)*v2[np.newaxis,...]
-    return interpolates
 
 
 def Q4(epochs=50, save_img_every=100):
@@ -374,7 +372,81 @@ def Q4(epochs=50, save_img_every=100):
     exModels.printable_model(exModels.GLO(), (10,)).summary()
     train_glo(train_ds, generator, epochs, save_img_every)
 
+
+def Q4_from_save():
+    generator = exModels.GLO()
+    generator.load_weights(GLO_WEIGHTS_PATH)
+    f_name = f"glo_z_numpy_batch_size_{BATCH_SIZE}"
+    Z = np.load(f_name + ".npy")
+
+    # x_train,y_train = get_data()[0]
+    # show_n_samples(Z,generator,x_train,y_train)
+
+    # Fails:
+    # 53780 : 1
+    # 40747 : 2
+
+    # Succses:
+    # 43036 : label 7
+    # 56337 : label 3
+    # 16227 : label 0
+    # z_idx_1 = 47457 # label 9
+    # z_idx_2 = 11855 # label 1
+    all_idxes = [
+        43036, 47457, 53780, 56337, 11855, 40747, 16227
+    ]
+    import itertools
+
+    num_rows = 8
+    num_cols = 10
+    for z_idx_1, z_idx_2 in itertools.product(all_idxes,all_idxes):
+        if z_idx_1 == z_idx_2:
+            continue
+        z1 = Z[z_idx_1]
+        z2 = Z[z_idx_2]
+        show_interpolation(generator, z1, z2, num_cols, num_rows, prefix=f"{z_idx_1}_{z_idx_2}_")
+
+
+def show_interpolation(generator, z1, z2, num_cols=10, num_rows=10, title: str = None, prefix=None):
+    interpolate = interpolate_vecs(z1, z2, num_rows * num_cols)
+    big_img = np.zeros((28 * num_rows, 28 * num_cols))
+    plt.figure()
+    for i, z in enumerate(interpolate):
+        row = i // num_cols
+        col = i % num_cols
+        Z_i = z[np.newaxis, ...]
+        out = generator(Z_i)
+        out = np.reshape(out, (28, 28))
+        big_img[row * 28:(row + 1) * 28, col * 28:(col + 1) * 28] = out[:]
+    plt.imshow(big_img, cmap='gray')
+    plt.axis(False)
+    if title:
+        plt.title(title)
+    f_name = prefix + "interpolation.png" if prefix else "interpolation.png"
+    plt.savefig(f_name, bbox_inches='tight')
+    plt.close()
+    # plt.show()
+
+
+def show_n_samples(Z, generator, x_train, y_train, n=10):
+    all_indexes = np.arange(0, x_train.shape[0])
+    all_indexes = np.random.choice(all_indexes, n)
+    for i in all_indexes:
+        title = f"Z_i {i} label {y_train[i]}"
+        print(title)
+        plt.figure()
+        plt.title(title)
+        Z_i = Z[i]
+        Z_i = Z_i[np.newaxis, ...]
+        out = generator(Z_i)
+        out = np.reshape(out, (28, 28))
+        plt.imshow(out, cmap='gray')
+    plt.show()
+
+
 from typing import List
+
+
 def run_many_Q2(epochs=10, save_img_every=100, means: List[float] = None, stddevs: List[float] = None):
     if not means:
         means = [0]
@@ -408,4 +480,5 @@ def visualize_model_to_file(model, file_name, input_shape=(28, 28, 1)):
 
 
 if __name__ == '__main__':
-    main()
+    Q4_from_save()
+    # main()
