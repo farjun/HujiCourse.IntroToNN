@@ -364,10 +364,7 @@ def Q3(epochs=50, save_img_every=100, saveFig=True):
     test_ds, train_ds = get_data_as_tensorslice(normelizeBetweenOneAndMinusOne=True)
     train_GAN(generator, discriminator, train_ds, epochs, save_img_every, gen_weights_path=GanGenerator_WEIGHTS_PATH,
               disc_weights_path=GanDiscriminator_WEIGHTS_PATH, saveFig=saveFig)
-    vec1 = tf.random.normal((1, 10))
-    vec2 = tf.random.normal((1, 10))
-    interpulation = interpolate_vecs(vec1, vec2)
-    inter1 = generator(interpulation[0])
+
 
 def Q4(epochs=50, save_img_every=100):
     generator = exModels.GLO()
